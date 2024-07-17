@@ -44,12 +44,22 @@ namespace Studio_One_File_Finder
 		{
 			var btn = sender as Button;
 			FolderInfo fi = btn.BindingContext as FolderInfo;
-			FilePreferences.SampleFolders.Remove(fi);
+			FilePreferences.RemoveFolder(FilePreferences.SampleFolders, fi);
 		}
 
 		private void OnAddSampleDirClicked(object sender, EventArgs e)
 		{
 			FilePreferences.AddNewSampleFolder();
+		}
+		private void OnDeleteProjectDirClicked(object sender, EventArgs e)
+		{
+			var btn = sender as Button;
+			FolderInfo fi = btn.BindingContext as FolderInfo;
+			FilePreferences.RemoveFolder(FilePreferences.ProjectFolders, fi);
+		}
+		private void OnAddProjectDirClicked(object sender, EventArgs e)
+		{
+			FilePreferences.AddNewProjectFolder();
 		}
 		async Task<string?> PickFolder(CancellationToken cancellationToken)
 		{

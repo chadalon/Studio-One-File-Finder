@@ -17,14 +17,13 @@ namespace Studio_One_File_Finder
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
-		private string _folderPath;
-
-		public string FolderPath
+		private ObservableCollection<FolderInfo> _projectFolders;
+		public ObservableCollection<FolderInfo> ProjectFolders
 		{
-			get => _folderPath;
+			get => _projectFolders;
 			set
 			{
-				_folderPath = value;
+				_projectFolders = value;
 				OnPropertyChanged();
 			}
 		}
@@ -41,16 +40,31 @@ namespace Studio_One_File_Finder
 
 		public void AddNewSampleFolder()
 		{
-			SampleFolders.Add(new FolderInfo(string.Empty));
+			SampleFolders.Add(new FolderInfo(string.Empty, SampleFolders.Count + 1));
+		}
+		public void AddNewProjectFolder()
+		{
+			ProjectFolders.Add(new FolderInfo(string.Empty, ProjectFolders.Count + 1));
+		}
+
+		public void RemoveFolder(ObservableCollection<FolderInfo> folders, FolderInfo folder)
+		{
+			folders.Remove(folder);
+			for (int i = 0; i < folders.Count; i++)
+			{
+				folders[i].IndexInCollectionPlusOne = i + 1;
+			}
 		}
 
 		public FilePreferencesViewModel()
 		{
-			FolderPath = "C:\\";
-
 			SampleFolders = new ObservableCollection<FolderInfo>
 			{
-				new FolderInfo(string.Empty)
+				new FolderInfo(string.Empty, 0)
+			};
+			ProjectFolders = new ObservableCollection<FolderInfo>
+			{
+				new FolderInfo(string.Empty, 0)
 			};
 		}
 	}
@@ -60,6 +74,16 @@ namespace Studio_One_File_Finder
 		protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
+		private int _indexInCollectionPlusOne;
+		public int IndexInCollectionPlusOne
+		{
+			get => _indexInCollectionPlusOne;
+			set
+			{
+				_indexInCollectionPlusOne = value;
+				OnPropertyChanged();
+			}
 		}
 		private string _folderPath;
 		public string FolderPath
@@ -72,9 +96,10 @@ namespace Studio_One_File_Finder
 			}
 		}
 
-		public FolderInfo(string path)
+		public FolderInfo(string path, int indexInCollection)
 		{
 			FolderPath = path;
+			IndexInCollectionPlusOne = indexInCollection;
 		}
 
 		public bool VerifyPath()
