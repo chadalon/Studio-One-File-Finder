@@ -34,21 +34,36 @@
                     Grid.Column="0"
                     Padding="0,20,0,0">
                     <Label
-                        Text="Sample Locations:"
-                        SemanticProperties.HeadingLevel="Level2" />
-                    <Label
-                        Text="Folder 1:"
-                        SemanticProperties.HeadingLevel="Level3" />
-                    <HorizontalStackLayout>
-                        <Entry
-                        x:Name="LocationEntry"
-                        Placeholder="Enter location"
-                        Text="{Binding Location}" />
-                        <Button
-                            Text="Browse"
-                            Clicked="OnBrowseClicked" />
+                            Text="Sample Locations:"
+                            SemanticProperties.HeadingLevel="Level2" />
+                    <CollectionView ItemsSource="{Binding SampleFolders, Mode=TwoWay}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                                <StackLayout
+                                    Padding="0,20">
+                                    <Label
+                            Text="Folder 1:"
+                            SemanticProperties.HeadingLevel="Level3" />
+                                    <HorizontalStackLayout>
+                                        <Entry
+                                            Unfocused="LocationEntry_Unfocused"
+                            x:Name="LocationEntry"
+                            Placeholder="Enter location"
+                            Text="{Binding FolderPath, Mode=TwoWay}" />
+                                        <Button
+                                Text="Browse"
+                                Clicked="OnBrowseClicked" />
+                                        <Button
+                                            Text="Delete"
+                                            Clicked="OnDeleteSampleDirClicked" />
 
-                    </HorizontalStackLayout>
+                                    </HorizontalStackLayout>
+                                </StackLayout>
+
+                            </DataTemplate>
+
+                    </CollectionView.ItemTemplate>
+                    </CollectionView>
                     <Button
                         Text="Add Another Sample Directory"
                         Clicked="OnAddSampleDirClicked" />

@@ -6,10 +6,15 @@ namespace Studio_One_File_Finder
 	{
 		int count = 0;
 		private IFolderPicker _folderPicker;
-		public MainPage(IFolderPicker folderPicker)
+		public FilePreferencesViewModel FilePreferences;
+		public string Hello = "poo";
+		public MainPage(IFolderPicker folderPicker, FilePreferencesViewModel filePreferencesViewModel)
 		{
 			InitializeComponent();
 			_folderPicker = folderPicker;
+			FilePreferences = filePreferencesViewModel;
+
+			BindingContext = FilePreferences;
 		}
 
 		private void OnCounterClicked(object sender, EventArgs e)
@@ -24,27 +29,55 @@ namespace Studio_One_File_Finder
 
 			SemanticScreenReader.Announce(CounterBtn.Text);*/
 		}
-		private void OnBrowseClicked(object sender, EventArgs e)
+		private async void OnBrowseClicked(object sender, EventArgs e)
 		{
+			var btn = sender as Button;
+			FolderInfo fi = btn.BindingContext as FolderInfo;
 			//await Navigation.PushAsync(new BrowsePage());
+			var pickedFolder = await PickFolder(new CancellationToken());
+			if (pickedFolder != null)
+			{
+				fi.FolderPath = pickedFolder;
+			}
+		}
+		private async void OnDeleteSampleDirClicked(object sender, EventArgs e)
+		{
+			var btn = sender as Button;
+			FolderInfo fi = btn.BindingContext as FolderInfo;
+			FilePreferences.SampleFolders.Remove(fi);
 		}
 
-		private async void OnAddSampleDirClicked(object sender, EventArgs e)
+		private void OnAddSampleDirClicked(object sender, EventArgs e)
 		{
-			await PickFolder(new CancellationToken());
+			FilePreferences.AddNewSampleFolder();
 		}
-		async Task PickFolder(CancellationToken cancellationToken)
+		async Task<string?> PickFolder(CancellationToken cancellationToken)
 		{
 			var result = await _folderPicker.PickFolder();
-			/*
-			if (result.IsSuccessful)
+			if (result != null)
 			{
-				await Toast.Make($"The folder was picked: Name - {result.Folder.Name}, Path - {result.Folder.Path}", ToastDuration.Long).Show(cancellationToken);
+				// TODO check if it's a valid path
+			}
+			return result;
+		}
+
+		private void LocationEntry_Unfocused(object sender, FocusEventArgs e) // TODO: This is a hack, need to find a better way to do this. maybes subscribe to an observable
+		{
+			Entry entry = sender as Entry;
+			FolderInfo fi = entry.BindingContext as FolderInfo;
+			if (!fi.VerifyPath())
+			{
+				entry.TextColor = Colors.Red;
 			}
 			else
 			{
-				await Toast.Make($"The folder was not picked with error: {result.Exception.Message}").Show(cancellationToken);
-			}*/
+				entry.TextColor = AppInfo.Current.RequestedTheme switch
+				{
+					AppTheme.Dark => Colors.AntiqueWhite,
+					AppTheme.Light => Colors.Black,
+					_ => Colors.Black
+				};
+			}
 		}
 	}
 
