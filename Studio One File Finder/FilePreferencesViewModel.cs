@@ -37,6 +37,16 @@ namespace Studio_One_File_Finder
 				OnPropertyChanged();
 			}
 		}
+		private bool _replaceSampleOne;
+		public bool ReplaceSampleOne
+		{
+			get => _replaceSampleOne;
+			set
+			{
+				_replaceSampleOne = value;
+				OnPropertyChanged();
+			}
+		}
 
 		public void AddNewSampleFolder()
 		{
@@ -66,6 +76,7 @@ namespace Studio_One_File_Finder
 			{
 				new FolderInfo(string.Empty, 0)
 			};
+			ReplaceSampleOne = true;
 		}
 	}
 	public class FolderInfo : INotifyPropertyChanged

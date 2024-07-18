@@ -1,17 +1,37 @@
 ﻿using System.Threading.Tasks;
+using CommunityToolkit.Maui.Storage;
+using CommunityToolkit.Maui.Core.Primitives;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
+
+#if WINDOWS
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+#endif
+
+#if IOS || MACCATALYST
+using UIKit;
+using Foundation;
+#endif
 
 namespace Studio_One_File_Finder
 {
 	public partial class MainPage : ContentPage
 	{
-		int count = 0;
-		private IFolderPicker _folderPicker;
 		public FilePreferencesViewModel FilePreferences;
 		public string Hello = "poo";
-		public MainPage(IFolderPicker folderPicker, FilePreferencesViewModel filePreferencesViewModel)
+		public MainPage(FilePreferencesViewModel filePreferencesViewModel)
 		{
 			InitializeComponent();
-			_folderPicker = folderPicker;
 			FilePreferences = filePreferencesViewModel;
 
 			BindingContext = FilePreferences;
@@ -19,7 +39,6 @@ namespace Studio_One_File_Finder
 
 		private void OnCounterClicked(object sender, EventArgs e)
 		{
-			count += 10;
 
 			/*
 			if (count == 1)
@@ -37,7 +56,7 @@ namespace Studio_One_File_Finder
 			var pickedFolder = await PickFolder(new CancellationToken());
 			if (pickedFolder != null)
 			{
-				fi.FolderPath = pickedFolder;
+				fi.FolderPath = pickedFolder.Path;
 			}
 		}
 		private async void OnDeleteSampleDirClicked(object sender, EventArgs e)
@@ -61,14 +80,15 @@ namespace Studio_One_File_Finder
 		{
 			FilePreferences.AddNewProjectFolder();
 		}
-		async Task<string?> PickFolder(CancellationToken cancellationToken)
+		async Task<Folder?> PickFolder(CancellationToken cancellationToken)
 		{
-			var result = await _folderPicker.PickFolder();
+			var result = await FolderPicker.Default.PickAsync(cancellationToken);
+			//var result = await _folderPicker.PickFolder();
 			if (result != null)
 			{
 				// TODO check if it's a valid path
 			}
-			return result;
+			return result?.Folder;
 		}
 
 		private void LocationEntry_Unfocused(object sender, FocusEventArgs e) // TODO: This is a hack, need to find a better way to do this. maybes subscribe to an observable
@@ -87,6 +107,138 @@ namespace Studio_One_File_Finder
 					AppTheme.Light => Colors.Black,
 					_ => Colors.Black
 				};
+			}
+		}
+
+		void OnDragOver(object sender, DragEventArgs e)
+		{
+			// TODO
+			// if its a folder
+			// indicate it's good
+		}
+		async void OnDrop(object sender, DropEventArgs e) // BIG TODO!!!!! MACCATALYST SHIT!!!
+		{
+			var filePaths = new List<string>();
+
+#if WINDOWS
+			if (e.PlatformArgs is not null && e.PlatformArgs.DragEventArgs.DataView.Contains(StandardDataFormats.StorageItems))
+			{
+				var items = await e.PlatformArgs.DragEventArgs.DataView.GetStorageItemsAsync();
+				if (items.Any())
+				{
+					foreach (var item in items)
+					{
+						if (item is StorageFolder file)
+						{
+							filePaths.Add(item.Path);
+						}
+					}
+
+				}
+			}
+#elif MACCATALYST
+			var session = e.PlatformArgs?.DropSession;
+			if (session == null)
+			{
+				return;
+			}
+			foreach (UIDragItem item in session.Items)
+			{
+				var result = await LoadItemAsync(item.ItemProvider, item.ItemProvider.RegisteredTypeIdentifiers.ToList());
+				if (result is not null)
+				{
+					filePaths.Add(result.FileUrl?.Path!);
+				}
+			}
+			foreach (var item in filePaths)
+			{
+				Debug.WriteLine($"Path: {item}");
+			}
+
+			static async Task<LoadInPlaceResult?> LoadItemAsync(NSItemProvider itemProvider, List<string> typeIdentifiers)
+			{
+				if (typeIdentifiers is null || typeIdentifiers.Count == 0)
+				{
+					return null;
+				}
+
+				var typeIdent = typeIdentifiers.First();
+
+				if (itemProvider.HasItemConformingTo(typeIdent))
+				{
+					return await itemProvider.LoadInPlaceFileRepresentationAsync(typeIdent);
+				}
+
+				typeIdentifiers.Remove(typeIdent);
+
+				return await LoadItemAsync(itemProvider, typeIdentifiers);
+			}
+#else
+			await Task.CompletedTask;
+#endif
+			/*
+#if WINDOWS
+			if (e.PlatformArgs is not null && e.PlatformArgs.DragEventArgs.DataView.Contains(StandardDataFormats.StorageItems))
+			{
+				var items = await e.PlatformArgs.DragEventArgs.DataView.GetStorageItemsAsync();
+				if (items.Any())
+				{
+					foreach (var item in items)
+					{
+						if (item is StorageFile file)
+						{
+							filePaths.Add(item.Path);
+						}
+					}
+
+				}
+			}
+#elif MACCATALYST
+			var session = e.PlatformArgs?.DropSession;
+			if (session == null)
+			{
+				return;
+			}
+			foreach (UIDragItem item in session.Items)
+			{
+				var result = await LoadItemAsync(item.ItemProvider, item.ItemProvider.RegisteredTypeIdentifiers.ToList());
+				if (result is not null)
+				{
+					filePaths.Add(result.FileUrl?.Path!);
+				}
+			}
+			foreach (var item in filePaths)
+			{
+				Debug.WriteLine($"Path: {item}");
+			}
+
+			static async Task<LoadInPlaceResult?> LoadItemAsync(NSItemProvider itemProvider, List<string> typeIdentifiers)
+			{
+				if (typeIdentifiers is null || typeIdentifiers.Count == 0)
+				{
+					return null;
+				}
+
+				var typeIdent = typeIdentifiers.First();
+
+				if (itemProvider.HasItemConformingTo(typeIdent))
+				{
+					return await itemProvider.LoadInPlaceFileRepresentationAsync(typeIdent);
+				}
+
+				typeIdentifiers.Remove(typeIdent);
+
+				return await LoadItemAsync(itemProvider, typeIdentifiers);
+			}
+#else
+			await Task.CompletedTask;
+#endif*/
+
+			var dgr = sender as DropGestureRecognizer;
+			if (dgr is not null && filePaths.Count > 0)
+			{
+				FolderInfo fi = dgr.BindingContext as FolderInfo;
+				fi.FolderPath = filePaths.First();
 			}
 		}
 	}

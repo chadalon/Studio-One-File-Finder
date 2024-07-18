@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
 
 namespace Studio_One_File_Finder
 {
@@ -9,6 +10,7 @@ namespace Studio_One_File_Finder
 			var builder = MauiApp.CreateBuilder();
 			builder
 				.UseMauiApp<App>()
+				.UseMauiCommunityToolkit()
 				.ConfigureFonts(fonts =>
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -18,11 +20,12 @@ namespace Studio_One_File_Finder
 #if DEBUG
 			builder.Logging.AddDebug();
 #endif
+			/*
 #if WINDOWS
 			builder.Services.AddSingleton<IFolderPicker, Platforms.Windows.FolderPickerWindows>();
 #elif MACCATALYST
 			builder.Services.AddSingleton<IFolderPicker, Platforms.MacCatalyst.FolderPickerMac>();
-#endif
+#endif*/
 			builder.Services.AddTransient<MainPage>();
 			builder.Services.AddSingleton<FilePreferencesViewModel>();
 			return builder.Build();
