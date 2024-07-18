@@ -9,6 +9,7 @@ using System.Xml;
 // TODO cancellationtoken, make this a task perhaps
 // TODO make run button a reactivecommand. it can b enabled when you have valid directories AND when this ISNT running
 // TODO plug in settings for sampleone etc
+// TODO cleanup
 namespace Studio_One_File_Finder
 {
 	enum FileType
@@ -231,7 +232,7 @@ namespace Studio_One_File_Finder
 				}
 				else
 				{
-					foreach (var path in _newSampleFolders)
+					foreach (var path in _sampleFolders)
 					{
 						matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
 						if (matchingFile != null) break;

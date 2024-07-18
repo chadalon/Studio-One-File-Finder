@@ -70,11 +70,11 @@ namespace Studio_One_File_Finder
 		{
 			SampleFolders = new ObservableCollection<FolderInfo>
 			{
-				new FolderInfo(string.Empty, 0)
+				new FolderInfo(string.Empty, 1)
 			};
 			ProjectFolders = new ObservableCollection<FolderInfo>
 			{
-				new FolderInfo(string.Empty, 0)
+				new FolderInfo(string.Empty, 1)
 			};
 			ReplaceSampleOne = true;
 		}
