@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using ReactiveUI;
+using System.Reactive;
 
 #if WINDOWS
 using Windows.ApplicationModel.DataTransfer;
@@ -36,6 +38,7 @@ namespace Studio_One_File_Finder
 
 			BindingContext = FilePreferences;
 		}
+
 
 		private void OnCounterClicked(object sender, EventArgs e)
 		{
@@ -93,6 +96,7 @@ namespace Studio_One_File_Finder
 
 		private void LocationEntry_Unfocused(object sender, FocusEventArgs e) // TODO: This is a hack, need to find a better way to do this. maybes subscribe to an observable
 		{
+			/*
 			Entry entry = sender as Entry;
 			FolderInfo fi = entry.BindingContext as FolderInfo;
 			if (!fi.VerifyPath())
@@ -107,7 +111,7 @@ namespace Studio_One_File_Finder
 					AppTheme.Light => Colors.Black,
 					_ => Colors.Black
 				};
-			}
+			}*/
 		}
 
 		void OnDragOver(object sender, DragEventArgs e)
