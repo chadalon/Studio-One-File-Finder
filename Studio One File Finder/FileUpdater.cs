@@ -27,7 +27,8 @@ namespace Studio_One_File_Finder
 		};
 
 		public delegate void Callback(string message);
-		Callback _currentHandler;
+		public delegate void CallbackAlert(string message, string title="Alert");
+		CallbackAlert _currentHandler;
 		Callback _currentOutput;
 
 		uint _refUpdateCount;
@@ -63,10 +64,8 @@ namespace Studio_One_File_Finder
 				}
 			}
 		}
-		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, Callback handler, Callback output)
+		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, CallbackAlert handler, Callback output)
 		{
-			output("\nWe made it bois");
-			return;
 
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -232,7 +231,7 @@ namespace Studio_One_File_Finder
 				string? matchingFile;
 				if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
 				{
-					Console.WriteLine($"{fileName} was cached, nice.");
+					_currentOutput($"{fileName} was cached, nice.");
 				}
 				else
 				{
@@ -249,17 +248,17 @@ namespace Studio_One_File_Finder
 					if (fpath == newAttrib)
 					{
 						// No need to overwrite, the link is already good
-						Console.WriteLine($"{fileName} was already linked correctly");
+						_currentOutput($"{fileName} was already linked correctly");
 						continue;
 					}
-					Console.WriteLine($"FOUND A MATCH!!! {fileName} found in {matchingFile}");
+					_currentOutput($"FOUND A MATCH!!! {fileName} found in {matchingFile}");
 					// rewrite
 					element.Attributes!.GetNamedItem("url")!.Value = newAttrib;
 					_refUpdateCount++;
 				}
 				else
 				{
-					Console.WriteLine($"Couldn't find a match for {fileName} ...");
+					_currentOutput($"Couldn't find a match for {fileName} ...");
 				}
 			}
 

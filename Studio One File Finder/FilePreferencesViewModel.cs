@@ -16,6 +16,8 @@ namespace Studio_One_File_Finder
 {
 	public class FilePreferencesViewModel : INotifyPropertyChanged
 	{
+		public delegate void MyEventAction(string title, string message, string buttonContent);
+		public event MyEventAction Alert;
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
 		{
 			if (curVal != null && curVal.Equals(newVal) || curVal == null && newVal == null) return;
@@ -98,6 +100,7 @@ namespace Studio_One_File_Finder
 			{
 				SubmitEverything();
 			});*/
+			/*
 			IObservable<bool> canSubmit = this.WhenAnyValue(
 				x => x.CanSubmit);
 			SubmitCommand = ReactiveCommand.Create(() =>
@@ -110,23 +113,25 @@ namespace Studio_One_File_Finder
 				{
 					OutputText = e.Message;
 				}
-			});//, canSubmit);
+			});//, canSubmit);*/
 		}
-		private void SubmitEverything()
+		public void SubmitEverything()
 		{
 			List<string> validSampleDirs = SampleFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
 			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
 			List<FileType> extraPlugins = new List<FileType>();
 			if (ReplaceSampleOne) // TODO there's a better way to do this with observables, hashtables, etc
 				extraPlugins.Add(FileType.SampleOne);
-			FileUpdater.Callback errorHandler = (string message) =>
+			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
-				OutputText = message;
+				Alert?.Invoke(title, message, "okay bruv");
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
-				OutputText = message;
+				DateTime curDate = DateTime.Now;
+				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
+				OutputText += msgToOut;
 			};
 
 			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, errorHandler, outputHandler);
