@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Reactive;
 using DynamicData.Binding;
 using System.Collections.Specialized;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Studio_One_File_Finder
 {
@@ -132,31 +133,30 @@ namespace Studio_One_File_Finder
 			{
 
 			}
+			SetCanSubmit();
 		}
+		/// <summary>
+		/// If we have one valid folder for samlples and one valid for projects, we can submit
+		/// </summary>
 		private void SetCanSubmit()
 		{
-			foreach (var folder in SampleFolders)
-			{
-				if (!folder.PathIsValid)
-				{
-					CanSubmit = false;
-					return;
-				}
-			}
-			foreach (var folder in ProjectFolders)
-			{
-				if (!folder.PathIsValid)
-				{
-					CanSubmit = false;
-					return;
-				}
-			}
-			CanSubmit = true;
+			CanSubmit = SampleFolders.Any(x => x.PathIsValid) && ProjectFolders.Any(x => x.PathIsValid);
 		}
 	}
 	public class FolderInfo : INotifyPropertyChanged
 	{
-		public bool PathIsValid = false;
+		// TODO set if changed func
+		private bool _pathIsValid;
+		public bool PathIsValid
+		{
+			get => _pathIsValid;
+			set
+			{
+				if (PathIsValid == value) return;
+				_pathIsValid = value;
+				OnPropertyChanged();
+			}
+		}
 		public event PropertyChangedEventHandler? PropertyChanged;
 		protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
@@ -178,7 +178,18 @@ namespace Studio_One_File_Finder
 			get => _folderPath;
 			set
 			{
+				if (FolderPath == value) return;
 				_folderPath = value;
+				OnPropertyChanged();
+			}
+		}
+		private Color _textColor;
+		public Color TextColor
+		{
+			get => _textColor;
+			set
+			{
+				_textColor = value;
 				OnPropertyChanged();
 			}
 		}
@@ -187,6 +198,20 @@ namespace Studio_One_File_Finder
 		{
 			FolderPath = path;
 			IndexInCollectionPlusOne = indexInCollection;
+			PathIsValid = false;
+
+			// TODO dispose
+			this.WhenAnyValue(x => x.PathIsValid).Subscribe(valid =>
+			{
+				if (valid)
+				{
+					TextColor = ThemeStuff.GetDefaultTextColor();
+				}
+				else
+				{
+					TextColor = ThemeStuff.GetErrorText();
+				}
+			});
 		}
 
 		public void VerifyPath()

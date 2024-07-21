@@ -56,10 +56,10 @@
                                         SemanticProperties.HeadingLevel="Level3" />
                                         <HorizontalStackLayout>
                                             <Entry
-                                        Unfocused="LocationEntry_Unfocused"
                                         x:Name="LocationEntry"
                                         Placeholder="Enter location"
-                                        Text="{Binding FolderPath, Mode=TwoWay}" >
+                                        Text="{Binding FolderPath, Mode=TwoWay}" 
+                                        TextColor="{Binding TextColor, Mode=TwoWay}">
                                                 <Entry.GestureRecognizers>
                                                     <DropGestureRecognizer DragOver="OnDragOver" Drop="OnDrop" />
                                                 </Entry.GestureRecognizers>
@@ -102,10 +102,10 @@
                                         SemanticProperties.HeadingLevel="Level3" />
                                         <HorizontalStackLayout>
                                             <Entry
-                                        Unfocused="LocationEntry_Unfocused"
                                         x:Name="LocationEntry"
                                         Placeholder="Enter location"
-                                        Text="{Binding FolderPath, Mode=TwoWay}">
+                                        Text="{Binding FolderPath, Mode=TwoWay}"
+                                        TextColor="{Binding TextColor}">
                                                 <Entry.GestureRecognizers>
                                                     <DropGestureRecognizer DragOver="OnDragOver" Drop="OnDrop" />
                                                 </Entry.GestureRecognizers>

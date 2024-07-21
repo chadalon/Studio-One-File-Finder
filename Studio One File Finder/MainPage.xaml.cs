@@ -94,26 +94,6 @@ namespace Studio_One_File_Finder
 			return result?.Folder;
 		}
 
-		private void LocationEntry_Unfocused(object sender, FocusEventArgs e) // TODO: This is a hack, need to find a better way to do this. maybes subscribe to an observable
-		{
-			/*
-			Entry entry = sender as Entry;
-			FolderInfo fi = entry.BindingContext as FolderInfo;
-			if (!fi.VerifyPath())
-			{
-				entry.TextColor = Colors.Red;
-			}
-			else
-			{
-				entry.TextColor = AppInfo.Current.RequestedTheme switch
-				{
-					AppTheme.Dark => Colors.AntiqueWhite,
-					AppTheme.Light => Colors.Black,
-					_ => Colors.Black
-				};
-			}*/
-		}
-
 		void OnDragOver(object sender, DragEventArgs e)
 		{
 			// TODO
