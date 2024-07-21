@@ -63,8 +63,11 @@ namespace Studio_One_File_Finder
 				}
 			}
 		}
-		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, Callback handler, Callback output)
+		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, Callback handler, Callback output)
 		{
+			output("\nWe made it bois");
+			return;
+
 			_currentHandler = handler;
 			_currentOutput = output;
 			ValidatePaths(sampleDirectories, output);
@@ -80,6 +83,7 @@ namespace Studio_One_File_Finder
 			if (projectDirectories.Count == 0)
 			{
 				handler("There are no valid project directories.");
+				return;
 			}
 
 			foreach (string projectsDir in projectDirectories)

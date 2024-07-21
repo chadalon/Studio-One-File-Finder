@@ -74,8 +74,24 @@ namespace Studio_One_File_Finder
 			}
 		}
 
+		private string _outputText;
+		public string OutputText
+		{
+			get => _outputText;
+			set
+			{
+				if (OutputText == value) return;
+				_outputText = value;
+				OnPropertyChanged();
+			}
+		}
+
+		private FileUpdater _fileUpdater;
+
 		public FilePreferencesViewModel()
 		{
+			_fileUpdater = new();
+
 			ReplaceSampleOne = true;
 
 			CanSubmit = false;
@@ -85,6 +101,7 @@ namespace Studio_One_File_Finder
 			ProjectFolders.CollectionChanged += new NotifyCollectionChangedEventHandler(FoldersCollectionChanged);
 			SampleFolders.Add(new FolderInfo(string.Empty, 1));
 			ProjectFolders.Add(new FolderInfo(string.Empty, 1));
+			OutputText = "Hello, World!";
 			/*
 			ProjectFolders.ToObservableChangeSet().Subscribe(_ =>
 			{
@@ -96,7 +113,22 @@ namespace Studio_One_File_Finder
 		}
 		private void SubmitEverything()
 		{
+			List<string> validSampleDirs = SampleFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+			List<FileType> extraPlugins = new List<FileType>();
+			if (ReplaceSampleOne) // TODO there's a better way to do this with observables, hashtables, etc
+				extraPlugins.Add(FileType.SampleOne);
+			FileUpdater.Callback errorHandler = (string message) =>
+			{
+				// error popup
+				OutputText = message;
+			};
+			FileUpdater.Callback outputHandler = (string message) =>
+			{
+				OutputText = message;
+			};
 
+			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, errorHandler, outputHandler);
 		}
 
 		public void AddNewSampleFolder()
