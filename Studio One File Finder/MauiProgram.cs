@@ -26,7 +26,7 @@ namespace Studio_One_File_Finder
 #elif MACCATALYST
 			builder.Services.AddSingleton<IFolderPicker, Platforms.MacCatalyst.FolderPickerMac>();
 #endif*/
-			builder.Services.AddTransient<MainPage>();
+			builder.Services.AddSingleton<MainPage>(); //AddTransient<MainPage>();
 			builder.Services.AddSingleton<FilePreferencesViewModel>();
 			return builder.Build();
 		}

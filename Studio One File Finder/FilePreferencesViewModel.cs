@@ -16,8 +16,14 @@ namespace Studio_One_File_Finder
 {
 	public class FilePreferencesViewModel : INotifyPropertyChanged
 	{
+		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
+		{
+			if (curVal != null && curVal.Equals(newVal) || curVal == null && newVal == null) return;
+			curVal = newVal;
+			OnPropertyChanged(propertyName);
+		}
 		public event PropertyChangedEventHandler PropertyChanged; 
-		protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		protected void OnPropertyChanged(string propertyName = null)
 		{
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
@@ -28,8 +34,7 @@ namespace Studio_One_File_Finder
 			get => _projectFolders;
 			set
 			{
-				_projectFolders = value;
-				OnPropertyChanged();
+				SetIfDiff(ref _projectFolders, value);
 			}
 		}
 		private ObservableCollection<FolderInfo> _sampleFolders;
@@ -38,8 +43,7 @@ namespace Studio_One_File_Finder
 			get => _sampleFolders;
 			set
 			{
-				_sampleFolders = value;
-				OnPropertyChanged();
+				SetIfDiff(ref _sampleFolders, value);
 			}
 		}
 		private bool _replaceSampleOne;
@@ -48,8 +52,7 @@ namespace Studio_One_File_Finder
 			get => _replaceSampleOne;
 			set
 			{
-				_replaceSampleOne = value;
-				OnPropertyChanged();
+				SetIfDiff(ref _replaceSampleOne, value);
 			}
 		}
 
@@ -59,20 +62,10 @@ namespace Studio_One_File_Finder
 			get => _canSubmit;
 			set
 			{
-				_canSubmit = value;
-				OnPropertyChanged();
+				SetIfDiff(ref _canSubmit, value);
 			}
 		}
-		private ReactiveCommand<Unit, Unit> _submitCommand;
-		public ReactiveCommand<Unit, Unit> SubmitCommand
-		{
-			get => _submitCommand;
-			set
-			{
-				_submitCommand = value;
-				OnPropertyChanged();
-			}
-		}
+		public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
 
 		private string _outputText;
 		public string OutputText
@@ -80,9 +73,7 @@ namespace Studio_One_File_Finder
 			get => _outputText;
 			set
 			{
-				if (OutputText == value) return;
-				_outputText = value;
-				OnPropertyChanged();
+				SetIfDiff(ref _outputText, value);
 			}
 		}
 
@@ -109,7 +100,17 @@ namespace Studio_One_File_Finder
 			});*/
 			IObservable<bool> canSubmit = this.WhenAnyValue(
 				x => x.CanSubmit);
-			SubmitCommand = ReactiveCommand.Create(SubmitEverything, canSubmit);
+			SubmitCommand = ReactiveCommand.Create(() =>
+			{
+				try
+				{
+					SubmitEverything();
+				}
+				catch (Exception e)
+				{
+					OutputText = e.Message;
+				}
+			});//, canSubmit);
 		}
 		private void SubmitEverything()
 		{

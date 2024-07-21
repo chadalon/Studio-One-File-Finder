@@ -33,10 +33,9 @@ namespace Studio_One_File_Finder
 		public string Hello = "poo";
 		public MainPage(FilePreferencesViewModel filePreferencesViewModel)
 		{
-			InitializeComponent();
 			FilePreferences = filePreferencesViewModel;
-
-			BindingContext = FilePreferences;
+			BindingContext = filePreferencesViewModel;
+			InitializeComponent();
 		}
 
 
