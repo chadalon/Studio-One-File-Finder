@@ -26,6 +26,8 @@ namespace Studio_One_File_Finder
 			{ FileType.SampleOne, "//Zone/Attributes" }
 		};
 
+		public bool CurrentlyRunning = false;
+
 		public delegate void Callback(string message);
 		public delegate void CallbackAlert(string message, string title="Alert");
 		CallbackAlert _currentHandler;
@@ -66,7 +68,12 @@ namespace Studio_One_File_Finder
 		}
 		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, CallbackAlert handler, Callback output)
 		{
-
+			if (CurrentlyRunning)
+			{
+				_currentHandler("The file updater is already running!", "Holup");
+				return;
+			}
+			CurrentlyRunning = true;
 			_currentHandler = handler;
 			_currentOutput = output;
 			ValidatePaths(sampleDirectories, output);
@@ -106,6 +113,7 @@ namespace Studio_One_File_Finder
 
 			}
 			handler($"\nUpdated {_refUpdateCount} sample references ({_projectsUpdated} songs)");
+			CurrentlyRunning = false;
 		}
 		private void UpdateSong(string songFolderPath)
 		{
