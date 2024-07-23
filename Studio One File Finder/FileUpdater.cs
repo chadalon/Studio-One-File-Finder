@@ -58,7 +58,7 @@ namespace Studio_One_File_Finder
 			_sampleFolders = new();
 			_nodesToFind = new()
 			{
-				{ FileType.MediaPool, MEDIA_POOL }
+				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
 			};
 			if (resetCachedPaths) _discoveredFiles = new();
 		}
