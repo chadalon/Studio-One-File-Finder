@@ -45,6 +45,8 @@ namespace Studio_One_File_Finder
 			{
 				OutputScroller.ScrollToAsync(OutputScrollerLabel, ScrollToPosition.End, false);
 			});
+
+			musicPlayer.Play();
 		}
 
 

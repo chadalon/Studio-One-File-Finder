@@ -11,6 +11,7 @@ namespace Studio_One_File_Finder
 			builder
 				.UseMauiApp<App>()
 				.UseMauiCommunityToolkit()
+				.UseMauiCommunityToolkitMediaElement()
 				.ConfigureFonts(fonts =>
 				{
 					fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
