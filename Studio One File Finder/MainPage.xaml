@@ -166,7 +166,7 @@
                         <HorizontalStackLayout Grid.Row="0">
                             <CheckBox x:Name="DupeFilesCheckBox"
                                   IsChecked="False" />
-                            <Label Text="Fuck up those stupid ass dupes" VerticalTextAlignment="Center"/>
+                            <Label Text="Assume Duplicate Files" VerticalTextAlignment="Center"/>
                         </HorizontalStackLayout>
                     </mct:Expander.Content>
 
