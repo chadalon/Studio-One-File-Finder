@@ -21,12 +21,20 @@ namespace Studio_One_File_Finder
 	{
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		const string MEDIA_POOL = "Song/mediapool.xml";
-		Dictionary<FileType, string> _nodesToFind = new Dictionary<FileType, string> { // TODO make const
-			{ FileType.MediaPool, "//AudioClip/Url" },
-			{ FileType.SampleOne, "//Zone/Attributes" }
-		};
+		private static string FILE_TYPE_NODES(FileType fType)
+		{
+			switch(fType)
+			{
+				case FileType.MediaPool: return "//AudioClip/Url";
+				case FileType.SampleOne: return "//Zone/Attributes";
+				default: return null;
+			}
+		}
+		Dictionary<FileType, string> _nodesToFind;
 
 		public bool CurrentlyRunning = false;
+
+		private bool _updateSampleOneRefs;
 
 		public delegate void Callback(string message);
 		public delegate void CallbackAlert(string message, string title="Alert");
@@ -48,7 +56,11 @@ namespace Studio_One_File_Finder
 			_projectsUpdated = 0;
 			count = 0;
 			_sampleFolders = new();
-			if (resetCachedPaths) _discoveredFiles = new(); // acc probs keep this shit cached maybe
+			_nodesToFind = new()
+			{
+				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
+			};
+			if (resetCachedPaths) _discoveredFiles = new();
 		}
 		private void ValidatePaths(List<string> dirs, Callback handler)
 		{
@@ -73,6 +85,13 @@ namespace Studio_One_File_Finder
 				_currentHandler("The file updater is already running!", "Holup");
 				return;
 			}
+
+			InitClass();
+			foreach (var fType in typesToUpdate)
+			{
+				_nodesToFind[fType] = FILE_TYPE_NODES(fType);
+			}
+
 			CurrentlyRunning = true;
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -105,14 +124,14 @@ namespace Studio_One_File_Finder
 				{
 					UpdateSong(songFolderPath);
 					count++;
-					if (count > 2)
+					if (count > 4)
 					{
 						break;
 					}
 				}
 
 			}
-			handler($"\nUpdated {_refUpdateCount} sample references ({_projectsUpdated} songs)");
+			handler($"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)");
 			CurrentlyRunning = false;
 		}
 		private void UpdateSong(string songFolderPath)
@@ -130,11 +149,48 @@ namespace Studio_One_File_Finder
 
 			LoadProject(songFile);
 		}
+		/// <summary>
+		/// Write out the entry
+		/// </summary>
+		/// <param name="destination"></param>
+		/// <param name="entry"></param>
+		/// <param name="fType"></param>
+		private void WriteEntryIfNeeded(ZipArchive destination, ZipArchiveEntry entry, FileType fType)
+		{
+			var destinationEntry = destination.CreateEntry(entry.FullName);
+			string alterFileResult;
+			uint countBeforeCurEntry = _refUpdateCount;
+			using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
+			{
+				alterFileResult = AlterFile(reader, fType);
+			}
+			// keep our hands off the entry if we can
+			if (_refUpdateCount - countBeforeCurEntry > 0)
+			{
+				using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
+				{
+					writer.Write(alterFileResult);
+				}
+			}
+			else
+			{
+				CopyEntry(destination, entry);
+			}
+		}
+		private void CopyEntry(ZipArchive destination, ZipArchiveEntry entry)
+		{
+			var newEntry = destination.CreateEntry(entry.FullName); // TODO change compressionlevel this maybe
+			using (var entryStream = entry.Open())
+			using (var newEntryStream = newEntry.Open())
+			{
+				entryStream.CopyTo(newEntryStream);
+			}
+		}
 		public void LoadProject(string sourceFilePath)
 		{
-			_currentOutput("\n*****************************************");
+			_currentOutput("*****************************************");
 			_currentOutput($"Finding samples for {sourceFilePath}");
-			_currentOutput("\n*****************************************\n");
+			_currentOutput("*****************************************");
 			uint countBeforeCurFile = _refUpdateCount;
 			// TODO test inputting both / and \\
 			string tempFilePath = sourceFilePath + "temp"; // will this work lmao
@@ -146,36 +202,18 @@ namespace Studio_One_File_Finder
 				foreach (ZipArchiveEntry entry in source.Entries)
 				{
 					// TODO could probs refactor
-					if (entry.FullName == MEDIA_POOL)
+					if (entry.FullName == MEDIA_POOL && _nodesToFind.ContainsKey(FileType.MediaPool))
 					{
-						// modify
-						var destinationEntry = destination.CreateEntry(entry.FullName);
-
-						using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
-						using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
-						{
-							writer.Write(AlterFile(reader, FileType.MediaPool));
-						}
+						WriteEntryIfNeeded(destination, entry, FileType.MediaPool);
 					}
-					else if (entry.FullName.Contains("SampleOne"))
+					else if (entry.FullName.Contains("SampleOne") && _nodesToFind.ContainsKey(FileType.SampleOne))
 					{
-						// modify
-						var destinationEntry = destination.CreateEntry(entry.FullName);
-
-						using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
-						using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
-						{
-							writer.Write(AlterFile(reader, FileType.SampleOne));
-						}
+						_currentOutput("Checking SampleOne files...");
+						WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
 					}
 					else
 					{
-						var newEntry = destination.CreateEntry(entry.FullName); // TODO change compressionlevel this maybe
-						using (var entryStream = entry.Open())
-						using (var newEntryStream = newEntry.Open())
-						{
-							entryStream.CopyTo(newEntryStream);
-						}
+						CopyEntry(destination, entry);
 					}
 				}
 			}
