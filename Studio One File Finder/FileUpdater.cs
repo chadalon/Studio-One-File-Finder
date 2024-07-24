@@ -276,6 +276,19 @@ namespace Studio_One_File_Finder
 				if (fpath == null) continue;
 				string[] dirName = fpath.Split('/');
 				string fileName = dirName[dirName.Length - 1];
+				string[] fileDir = fpath.Split("file:///");
+				if (File.Exists(fileDir[fileDir.Length - 1]))
+				{
+					if (!_userConfig.OverwriteValidPaths)
+					{
+						_currentOutput($"{fileName} already exists with the current path. Not overwriting.");
+						continue;
+					}
+					else
+					{
+						_currentOutput($"{fileName} already exists with the current settings, but we are going to overwrite it if we can.");
+					}
+				}
 				string? matchingFile;
 				if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
 				{

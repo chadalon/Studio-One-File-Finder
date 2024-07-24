@@ -159,22 +159,24 @@
                               IsChecked="{Binding ReplaceSampleOne, Mode=TwoWay}" />
                         <Label Text="Update SampleOne Refs" VerticalTextAlignment="Center"/>
                     </HorizontalStackLayout>
-                    <HorizontalStackLayout>
-                        <CheckBox x:Name="OverwriteValidPathsCheckBox"
-                              IsChecked="{Binding OverwriteValidPaths, Mode=TwoWay}" />
-                        <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
-                    </HorizontalStackLayout>
                 </VerticalStackLayout>
                 <mct:Expander Grid.Row="1" Margin="0,20">
                     <mct:Expander.Header>
                         <Label Text="Advanced"></Label>
                     </mct:Expander.Header>
                     <mct:Expander.Content>
-                        <HorizontalStackLayout Grid.Row="0">
-                            <CheckBox x:Name="DupeFilesCheckBox"
+                        <VerticalStackLayout>
+                            <HorizontalStackLayout ToolTipProperties.Text="If a file ends with a number in parentheses, we will try to replace it if it's invalid.">
+                                <CheckBox x:Name="DupeFilesCheckBox"
                                   IsChecked="False" />
-                            <Label Text="Assume Duplicate Files" VerticalTextAlignment="Center"/>
-                        </HorizontalStackLayout>
+                                <Label Text="Assume Duplicate Files" VerticalTextAlignment="Center"/>
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout ToolTipProperties.Text="Even if a file's current path is valid, change it to one in the sample directories if found. Not recommended!">
+                                <CheckBox x:Name="OverwriteValidPathsCheckBox"
+                              IsChecked="{Binding OverWriteValidPaths, Mode=TwoWay}" />
+                                <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
                     </mct:Expander.Content>
 
                 </mct:Expander>
