@@ -57,6 +57,15 @@ namespace Studio_One_File_Finder
 				SetIfDiff(ref _replaceSampleOne, value);
 			}
 		}
+		private bool _overWriteValidPaths;
+		public bool OverWriteValidPaths
+		{
+			get => _overWriteValidPaths;
+			set
+			{
+				SetIfDiff(ref _overWriteValidPaths, value);
+			}
+		}
 
 		private bool _canSubmit;
 		public bool CanSubmit
@@ -86,6 +95,7 @@ namespace Studio_One_File_Finder
 			_fileUpdater = new();
 
 			ReplaceSampleOne = true;
+			OverWriteValidPaths = false;
 
 			CanSubmit = false;
 			SampleFolders = new();
@@ -133,8 +143,11 @@ namespace Studio_One_File_Finder
 				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
 				OutputText += msgToOut;
 			};
-
-			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, errorHandler, outputHandler);
+			var settings = new ExtraSettings
+			{
+				OverwriteValidPaths = this.OverWriteValidPaths
+			};
+			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
 		}
 
 		public void AddNewSampleFolder()
@@ -256,5 +269,11 @@ namespace Studio_One_File_Finder
 		{
 			PathIsValid = System.IO.Directory.Exists(FolderPath);
 		}
+	}
+	public struct ExtraSettings
+	{
+		public bool OverwriteValidPaths;
+		List<FileType> ExtraPlugins;
+
 	}
 }

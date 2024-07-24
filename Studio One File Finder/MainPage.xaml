@@ -153,11 +153,18 @@
                     <RowDefinition Height="55" />
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <HorizontalStackLayout Grid.Row="0">
-                    <CheckBox x:Name="SampleOneCheckBox"
+                <VerticalStackLayout Grid.Row="0">
+                    <HorizontalStackLayout>
+                        <CheckBox x:Name="SampleOneCheckBox"
                               IsChecked="{Binding ReplaceSampleOne, Mode=TwoWay}" />
-                    <Label Text="Update SampleOne Refs" VerticalTextAlignment="Center"/>
-                </HorizontalStackLayout>
+                        <Label Text="Update SampleOne Refs" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout>
+                        <CheckBox x:Name="OverwriteValidPathsCheckBox"
+                              IsChecked="{Binding OverwriteValidPaths, Mode=TwoWay}" />
+                        <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
                 <mct:Expander Grid.Row="1" Margin="0,20">
                     <mct:Expander.Header>
                         <Label Text="Advanced"></Label>

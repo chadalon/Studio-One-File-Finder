@@ -46,6 +46,7 @@ namespace Studio_One_File_Finder
 		int count; // TODO rename
 		private Dictionary<string, string?> _discoveredFiles;
 		private List<string> _sampleFolders;
+		private ExtraSettings _userConfig;
 		public FileUpdater()
 		{
 			InitClass(true);
@@ -78,21 +79,22 @@ namespace Studio_One_File_Finder
 				}
 			}
 		}
-		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, CallbackAlert handler, Callback output)
+		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
 		{
 			if (CurrentlyRunning)
 			{
 				_currentHandler("The file updater is already running!", "Holup");
 				return;
 			}
+			CurrentlyRunning = true;
 
 			InitClass();
 			foreach (var fType in typesToUpdate)
 			{
 				_nodesToFind[fType] = FILE_TYPE_NODES(fType);
 			}
+			_userConfig = config;
 
-			CurrentlyRunning = true;
 			_currentHandler = handler;
 			_currentOutput = output;
 			ValidatePaths(sampleDirectories, output);
