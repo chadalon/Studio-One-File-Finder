@@ -264,6 +264,30 @@ namespace Studio_One_File_Finder
 
 			return Beautify(xmlDoc);
 		}
+		private string GetFileName(string fullPath)
+		{
+			string[] dirName = fullPath.Split('/'); // TODO if we are fed a windows path this will be \
+			return dirName[dirName.Length - 1];
+		}
+		private string? SearchForFile(string oldSamplePath)
+		{
+			string fileName = GetFileName(oldSamplePath);
+			string? matchingFile;
+			if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
+			{
+				_currentOutput($"{fileName} was cached, nice.");
+			}
+			else
+			{
+				foreach (var path in _sampleFolders)
+				{
+					matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
+					if (matchingFile != null) break;
+				}
+				_discoveredFiles[fileName] = matchingFile; // cache to make our other file searches a billion times faster
+			}
+			return matchingFile;
+		}
 		/// <summary>
 		/// Search the given nodes for a url attribute and update it if possible.
 		/// </summary>
@@ -274,8 +298,7 @@ namespace Studio_One_File_Finder
 			{
 				string? fpath = element.Attributes?.GetNamedItem("url")?.Value;
 				if (fpath == null) continue;
-				string[] dirName = fpath.Split('/');
-				string fileName = dirName[dirName.Length - 1];
+				string fileName = GetFileName(fpath);
 				string[] fileDir = fpath.Split("file:///");
 				if (File.Exists(fileDir[fileDir.Length - 1]))
 				{
@@ -289,20 +312,7 @@ namespace Studio_One_File_Finder
 						_currentOutput($"{fileName} already exists with the current settings, but we are going to overwrite it if we can.");
 					}
 				}
-				string? matchingFile;
-				if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
-				{
-					_currentOutput($"{fileName} was cached, nice.");
-				}
-				else
-				{
-					foreach (var path in _sampleFolders)
-					{
-						matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
-						if (matchingFile != null) break;
-					}
-					_discoveredFiles[fileName] = matchingFile; // cache to make our other file searches a billion times faster
-				}
+				var matchingFile = SearchForFile(fpath);
 				if (matchingFile != null)
 				{
 					string newAttrib = "file:///" + matchingFile.Replace("\\", "/");
