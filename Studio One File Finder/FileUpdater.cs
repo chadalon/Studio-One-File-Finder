@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -21,6 +22,7 @@ namespace Studio_One_File_Finder
 	{
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		const string MEDIA_POOL = "Song/mediapool.xml";
+		const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		private static string FILE_TYPE_NODES(FileType fType)
 		{
 			switch(fType)
@@ -227,7 +229,13 @@ namespace Studio_One_File_Finder
 			else
 			{
 				//File.Delete(sourceFilePath);
-				File.Move(sourceFilePath, sourceFilePath + "oldbackup");
+				string newBackupPath = sourceFilePath + BACKUP_FILE_EXTENSION;
+				if (File.Exists(newBackupPath))
+				{
+					File.Delete(newBackupPath);
+				}
+
+				File.Move(sourceFilePath, newBackupPath);
 				File.Move(tempFilePath, sourceFilePath);
 				_projectsUpdated++;
 			}
@@ -264,53 +272,70 @@ namespace Studio_One_File_Finder
 
 			return Beautify(xmlDoc);
 		}
+		private string GetFileName(string fullPath)
+		{
+			string[] dirName = fullPath.Split('/'); // TODO if we are fed a windows path this will be \
+			return dirName[dirName.Length - 1];
+		}
+		private string? SearchForFile(string oldSamplePath)
+		{
+			string fileName = GetFileName(oldSamplePath);
+			string? matchingFile;
+			if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
+			{
+				_currentOutput($"{fileName} was cached, nice.");
+			}
+			else
+			{
+				foreach (var path in _sampleFolders)
+				{
+					matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
+					if (matchingFile != null) break;
+				}
+				_discoveredFiles[fileName] = matchingFile; // cache to make our other file searches a billion times faster
+			}
+			return matchingFile;
+		}
 		/// <summary>
 		/// Search the given nodes for a url attribute and update it if possible.
 		/// </summary>
 		/// <param name="elements"></param>
 		void UpdateXmlNodes(XmlNodeList elements)
 		{
-			foreach (XmlNode element in elements)
+			string? currentFilePath = null;
+			void UpdateXmlNode(XmlNode element, bool modifiedFileName=false)
 			{
-				string? fpath = element.Attributes?.GetNamedItem("url")?.Value;
-				if (fpath == null) continue;
-				string[] dirName = fpath.Split('/');
-				string fileName = dirName[dirName.Length - 1];
-				string[] fileDir = fpath.Split("file:///");
-				if (File.Exists(fileDir[fileDir.Length - 1]))
+				if (!modifiedFileName)
 				{
-					if (!_userConfig.OverwriteValidPaths)
+					currentFilePath = element.Attributes?.GetNamedItem("url")?.Value;
+					if (currentFilePath == null) return;
+				}
+				string fileName = GetFileName(currentFilePath);
+				if (!modifiedFileName)
+				{
+					string[] fileDir = currentFilePath.Split("file:///");
+					if (File.Exists(fileDir[fileDir.Length - 1]))
 					{
-						_currentOutput($"{fileName} already exists with the current path. Not overwriting.");
-						continue;
-					}
-					else
-					{
-						_currentOutput($"{fileName} already exists with the current settings, but we are going to overwrite it if we can.");
+						if (!_userConfig.OverwriteValidPaths)
+						{
+							_currentOutput($"{fileName} already exists with the current path. Not overwriting.");
+							return;
+						}
+						else
+						{
+							_currentOutput($"{fileName} already exists with the current settings, but we are going to overwrite it if we can.");
+						}
 					}
 				}
-				string? matchingFile;
-				if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
-				{
-					_currentOutput($"{fileName} was cached, nice.");
-				}
-				else
-				{
-					foreach (var path in _sampleFolders)
-					{
-						matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
-						if (matchingFile != null) break;
-					}
-					_discoveredFiles[fileName] = matchingFile; // cache to make our other file searches a billion times faster
-				}
+				var matchingFile = SearchForFile(currentFilePath);
 				if (matchingFile != null)
 				{
 					string newAttrib = "file:///" + matchingFile.Replace("\\", "/");
-					if (fpath == newAttrib)
+					if (currentFilePath == newAttrib)
 					{
 						// No need to overwrite, the link is already good
 						_currentOutput($"{fileName} was already linked correctly");
-						continue;
+						return;
 					}
 					_currentOutput($"FOUND A MATCH!!! {fileName} found in {matchingFile}");
 					// rewrite
@@ -319,10 +344,33 @@ namespace Studio_One_File_Finder
 				}
 				else
 				{
-					_currentOutput($"Couldn't find a match for {fileName} ...");
+					if (_userConfig.UpdateDuplicateFiles && FilenameAppearsToBeDuplicated(fileName) && !modifiedFileName)
+					{
+						currentFilePath = RemoveDuplicateFileRegex(currentFilePath);
+						_currentOutput($"{fileName} appears to be a duplicate file. Checking for {GetFileName(currentFilePath)} instead...");
+						UpdateXmlNode(element, true);
+					}
+					else
+					{
+						_currentOutput($"Couldn't find a match for {fileName} ...");
+					}
 				}
 			}
+			foreach (XmlNode element in elements) // TODO a lot of this could maybe be refactored? we might have to call this method again on files we're searching that we modify
+			{
+				UpdateXmlNode(element);
+			}
 
+		}
+		string DUPE_PATTERN = @"\([0-9]+\)\.[^.]*$";
+		string DUPE_PATTERN_REPLACE = @"\([0-9]+\)(?=\.[^.]*$)";
+		private bool FilenameAppearsToBeDuplicated(string fName)
+		{
+			return Regex.IsMatch(fName, DUPE_PATTERN);
+		}
+		private string RemoveDuplicateFileRegex(string filePath)
+		{
+			return Regex.Replace(filePath, DUPE_PATTERN_REPLACE, "");
 		}
 		/// <summary>
 		/// I hate this. I want to copy s1's format EXACTLY (or as close as possible). This probably doesn't matter a single bit
