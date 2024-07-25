@@ -168,7 +168,7 @@
                         <VerticalStackLayout>
                             <HorizontalStackLayout ToolTipProperties.Text="If a file ends with a number in parentheses, we will try to replace it if it's invalid.">
                                 <CheckBox x:Name="DupeFilesCheckBox"
-                                  IsChecked="False" />
+                                  IsChecked="{Binding UpdateDuplicates, Mode=TwoWay}" />
                                 <Label Text="Assume Duplicate Files" VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>
                             <HorizontalStackLayout ToolTipProperties.Text="Even if a file's current path is valid, change it to one in the sample directories if found. Not recommended!">

@@ -66,6 +66,15 @@ namespace Studio_One_File_Finder
 				SetIfDiff(ref _overWriteValidPaths, value);
 			}
 		}
+		private bool _updateDuplicates;
+		public bool UpdateDuplicates
+		{
+			get => _updateDuplicates;
+			set
+			{
+				SetIfDiff(ref _updateDuplicates, value);
+			}
+		}
 
 		private bool _canSubmit;
 		public bool CanSubmit
@@ -96,6 +105,7 @@ namespace Studio_One_File_Finder
 
 			ReplaceSampleOne = true;
 			OverWriteValidPaths = false;
+			UpdateDuplicates = false;
 
 			CanSubmit = false;
 			SampleFolders = new();
@@ -145,7 +155,8 @@ namespace Studio_One_File_Finder
 			};
 			var settings = new ExtraSettings
 			{
-				OverwriteValidPaths = this.OverWriteValidPaths
+				OverwriteValidPaths = OverWriteValidPaths,
+				UpdateDuplicateFiles = UpdateDuplicates
 			};
 			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
 		}
@@ -273,6 +284,7 @@ namespace Studio_One_File_Finder
 	public struct ExtraSettings
 	{
 		public bool OverwriteValidPaths;
+		public bool UpdateDuplicateFiles;
 		List<FileType> ExtraPlugins;
 
 	}
