@@ -23,6 +23,7 @@ namespace Studio_One_File_Finder
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		const string MEDIA_POOL = "Song/mediapool.xml";
 		const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
+		const string FX_EXTENSTION = ".fxpreset";
 		private static string FILE_TYPE_NODES(FileType fType)
 		{
 			switch(fType)
@@ -210,7 +211,7 @@ namespace Studio_One_File_Finder
 					{
 						WriteEntryIfNeeded(destination, entry, FileType.MediaPool);
 					}
-					else if (entry.FullName.Contains("SampleOne") && _nodesToFind.ContainsKey(FileType.SampleOne))
+					else if (_nodesToFind.ContainsKey(FileType.SampleOne) && entry.FullName.Contains("SampleOne") && entry.FullName.Contains(FX_EXTENSTION))
 					{
 						_currentOutput("Checking SampleOne files...");
 						WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
