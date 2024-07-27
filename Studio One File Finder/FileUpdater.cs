@@ -44,7 +44,10 @@ namespace Studio_One_File_Finder
 		CallbackAlert _currentHandler;
 		Callback _currentOutput;
 
+		private string _currentSongFolderName;
+
 		uint _refUpdateCount;
+		uint _sampleOneUpdateCount;
 		uint _projectsUpdated;
 		int count; // TODO rename
 		private Dictionary<string, string?> _discoveredFiles;
@@ -57,6 +60,7 @@ namespace Studio_One_File_Finder
 		private void InitClass(bool resetCachedPaths=false)
 		{
 			_refUpdateCount = 0;
+			_sampleOneUpdateCount = 0;
 			_projectsUpdated = 0;
 			count = 0;
 			_sampleFolders = new();
@@ -136,7 +140,12 @@ namespace Studio_One_File_Finder
 				}
 
 			}
-			handler($"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)");
+			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
+			if (_nodesToFind.ContainsKey(FileType.SampleOne))
+			{
+				finalString += $"\n{_sampleOneUpdateCount} of those were SampleOne updates";
+			}
+			handler(finalString);
 			CurrentlyRunning = false;
 		}
 		private void UpdateSong(string songFolderPath)
@@ -172,6 +181,10 @@ namespace Studio_One_File_Finder
 			// keep our hands off the entry if we can
 			if (_refUpdateCount - countBeforeCurEntry > 0)
 			{
+				if (fType == FileType.SampleOne)
+				{
+					_sampleOneUpdateCount += _refUpdateCount - countBeforeCurEntry;
+				}
 				using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
 				{
 					writer.Write(alterFileResult);
@@ -196,6 +209,15 @@ namespace Studio_One_File_Finder
 			_currentOutput("*****************************************");
 			_currentOutput($"Finding samples for {sourceFilePath}");
 			_currentOutput("*****************************************");
+			var splitPath = sourceFilePath.Split(Path.DirectorySeparatorChar);
+			if (splitPath.Length == 1)
+			{
+				_currentSongFolderName = "";
+			}
+			else
+			{
+				_currentSongFolderName = splitPath[splitPath.Length - 2];
+			}
 			uint countBeforeCurFile = _refUpdateCount;
 			// TODO test inputting both / and \\
 			string tempFilePath = sourceFilePath + "temp"; // will this work lmao
@@ -241,6 +263,12 @@ namespace Studio_One_File_Finder
 				_projectsUpdated++;
 			}
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="currentDir"></param>
+		/// <param name="fileName"></param>
+		/// <returns>null if the file isn't found</returns>
 		string? SearchMyDirOfficer(DirectoryInfo currentDir, string fileName)
 		{
 			var triedFile = currentDir.EnumerateFiles().ToList().FirstOrDefault(x => x.Name == fileName);
@@ -275,9 +303,14 @@ namespace Studio_One_File_Finder
 		}
 		private string GetFileName(string fullPath)
 		{
-			string[] dirName = fullPath.Split('/'); // TODO if we are fed a windows path this will be \
+			string[] dirName = fullPath.Split("/");
 			return dirName[dirName.Length - 1];
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="oldSamplePath">A string for the old sample path. Assumed to not be null or empty.</param>
+		/// <returns></returns>
 		private string? SearchForFile(string oldSamplePath)
 		{
 			string fileName = GetFileName(oldSamplePath);
@@ -297,6 +330,22 @@ namespace Studio_One_File_Finder
 			}
 			return matchingFile;
 		}
+		/// <param name="path">MUST be format S1 stores in (uses forward slashes)</param>
+		/// <returns>Whether we think it's inside the media or bounces folder.</returns>
+		private bool FileAppearsToBeARelativePath(string path)
+		{
+			var pathFolders = path.Split('/');
+			if (pathFolders.Length < 3) return false;
+			if (pathFolders[pathFolders.Length - 3] == _currentSongFolderName) // songname
+			{
+				if (pathFolders[pathFolders.Length - 2] == "Media" || pathFolders[pathFolders.Length - 2] == "Bounces")
+				{
+					// check if its in the path
+					return true;
+				}
+			}
+			return false;
+		}
 		/// <summary>
 		/// Search the given nodes for a url attribute and update it if possible.
 		/// </summary>
@@ -309,11 +358,15 @@ namespace Studio_One_File_Finder
 				if (!modifiedFileName)
 				{
 					currentFilePath = element.Attributes?.GetNamedItem("url")?.Value;
-					if (currentFilePath == null) return;
+					if (string.IsNullOrEmpty(currentFilePath)) return;
 				}
 				string fileName = GetFileName(currentFilePath);
 				if (!modifiedFileName)
 				{
+					if (FileAppearsToBeARelativePath(currentFilePath))
+					{
+						return;
+					}
 					string[] fileDir = currentFilePath.Split("file:///");
 					if (File.Exists(fileDir[fileDir.Length - 1]))
 					{
