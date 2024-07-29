@@ -46,6 +46,23 @@ namespace Studio_One_File_Finder
 				OutputScroller.ScrollToAsync(OutputScrollerLabel, ScrollToPosition.End, false);
 			});
 
+			var musicObservable = FilePreferences.WhenAnyValue(x => x.IsMusicPlaying).Subscribe(x =>
+			{
+				if (x)
+				{
+					musicPlayer.Play();
+				}
+				else
+				{
+					musicPlayer.Pause();
+				}
+			});
+
+			Loaded += OnPageLoad;
+		}
+
+		private void OnPageLoad(object? sender, EventArgs e)
+		{
 			musicPlayer.Play();
 		}
 

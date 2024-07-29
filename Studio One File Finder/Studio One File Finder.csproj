@@ -59,16 +59,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Resources\Audio\Breach.mp3" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui" Version="9.0.2" />
 		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="4.0.1" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 		<PackageReference Include="ReactiveUI" Version="20.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Resources\Audio\" />
 	</ItemGroup>
 
 </Project>

@@ -18,6 +18,8 @@ namespace Studio_One_File_Finder
 	{
 		public delegate void MyEventAction(string title, string message, string buttonContent);
 		public event MyEventAction Alert;
+		public delegate void ControlMusic(bool play);
+		public event MyEventAction Play;
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
 		{
 			if (curVal != null && curVal.Equals(newVal) || curVal == null && newVal == null) return;
@@ -85,6 +87,16 @@ namespace Studio_One_File_Finder
 				SetIfDiff(ref _canSubmit, value);
 			}
 		}
+
+		private bool _isMusicPlaying;
+		public bool IsMusicPlaying
+		{
+			get => _isMusicPlaying;
+			set
+			{
+				SetIfDiff(ref _isMusicPlaying, value);
+			}
+		}
 		public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
 
 		private string _outputText;
@@ -108,6 +120,7 @@ namespace Studio_One_File_Finder
 			UpdateDuplicates = false;
 
 			CanSubmit = false;
+			IsMusicPlaying = true;
 			SampleFolders = new();
 			ProjectFolders = new();
 			SampleFolders.CollectionChanged += new NotifyCollectionChangedEventHandler(FoldersCollectionChanged);
@@ -115,6 +128,7 @@ namespace Studio_One_File_Finder
 			SampleFolders.Add(new FolderInfo(string.Empty, 1));
 			ProjectFolders.Add(new FolderInfo(string.Empty, 1));
 			OutputText = "Hello, World!";
+
 			/*
 			ProjectFolders.ToObservableChangeSet().Subscribe(_ =>
 			{
