@@ -88,6 +88,16 @@ namespace Studio_One_File_Finder
 			}
 		}
 
+		private bool _canRestore;
+		public bool CanRestore
+		{
+			get => _canRestore;
+			set
+			{
+				SetIfDiff(ref _canRestore, value);
+			}
+		}
+
 		private bool _isMusicPlaying;
 		public bool IsMusicPlaying
 		{
@@ -120,6 +130,7 @@ namespace Studio_One_File_Finder
 			UpdateDuplicates = false;
 
 			CanSubmit = false;
+			CanRestore = false;
 			IsMusicPlaying = true;
 			SampleFolders = new();
 			ProjectFolders = new();
@@ -174,6 +185,24 @@ namespace Studio_One_File_Finder
 			};
 			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
 		}
+		public void RestoreFiles()
+		{
+			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+
+			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
+			{
+				// error popup
+				Alert?.Invoke(title, message, "okay bruv");
+			};
+			FileUpdater.Callback outputHandler = (string message) =>
+			{
+				DateTime curDate = DateTime.Now;
+				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
+				OutputText += msgToOut;
+			};
+			OutputText = "";
+			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler);
+		}
 
 		public void AddNewSampleFolder()
 		{
@@ -202,6 +231,7 @@ namespace Studio_One_File_Finder
 					{
 						(sender as FolderInfo).VerifyPath();
 						SetCanSubmit();
+						SetCanRestore();
 					};
 				}
 			}
@@ -210,6 +240,7 @@ namespace Studio_One_File_Finder
 
 			}
 			SetCanSubmit();
+			SetCanRestore();
 		}
 		/// <summary>
 		/// If we have one valid folder for samlples and one valid for projects, we can submit
@@ -217,6 +248,10 @@ namespace Studio_One_File_Finder
 		private void SetCanSubmit()
 		{
 			CanSubmit = SampleFolders.Any(x => x.PathIsValid) && ProjectFolders.Any(x => x.PathIsValid);
+		}
+		private void SetCanRestore()
+		{
+			CanRestore = ProjectFolders.Any(x => x.PathIsValid);
 		}
 	}
 	public class FolderInfo : INotifyPropertyChanged

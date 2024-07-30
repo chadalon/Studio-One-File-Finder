@@ -63,7 +63,8 @@ namespace Studio_One_File_Finder
 
 		private void OnPageLoad(object? sender, EventArgs e)
 		{
-			musicPlayer.Play();
+			// TODO uncomment this when ready
+			//musicPlayer.Play();
 		}
 
 		private void OnMusicCheckBoxClicked(object? sender, EventArgs e)
@@ -84,6 +85,10 @@ namespace Studio_One_File_Finder
 		private async void OnSubmitClicked(object sender, EventArgs e)
 		{
 			FilePreferences.SubmitEverything();
+		}
+		private async void OnRestoreClicked(object sender, EventArgs e)
+		{
+			FilePreferences.RestoreFiles();
 		}
 		private async void OnBrowseClicked(object sender, EventArgs e)
 		{
