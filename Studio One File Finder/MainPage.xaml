@@ -38,15 +38,15 @@
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <ScrollView Grid.Column="0">
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ScrollView
+                    Grid.Column="0">
                     <StackLayout
-                    Grid.Column="0"
                     Padding="20">
                         <Label
                         Text="Sample Locations:"
@@ -88,9 +88,10 @@
                     Text="Add Another Sample Directory"
                     Clicked="OnAddSampleDirClicked" />
                     </StackLayout>
-
+                </ScrollView>
+                <ScrollView
+                Grid.Column="1">
                     <StackLayout
-                Grid.Column="1"
                 Padding="20">
                         <Label
                     Text="Project Locations:"
@@ -134,9 +135,9 @@
                     Text="Add Another Project Directory"
                     Clicked="OnAddProjectDirClicked" />
                     </StackLayout>
-                </Grid>
-            </ScrollView>
-            
+                </ScrollView>
+            </Grid>
+
             <!-- Finalize and Start -->
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
