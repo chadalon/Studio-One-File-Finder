@@ -66,7 +66,10 @@ namespace Studio_One_File_Finder
 			musicPlayer.Play();
 		}
 
-
+		private void OnMusicCheckBoxClicked(object? sender, EventArgs e)
+		{
+			musicCheckBox.IsChecked = !musicCheckBox.IsChecked;
+		}
 		private void OnCounterClicked(object sender, EventArgs e)
 		{
 
