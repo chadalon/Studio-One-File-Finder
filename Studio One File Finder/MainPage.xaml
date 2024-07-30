@@ -98,7 +98,7 @@
                     Style="{StaticResource SubHeadline}"
                     SemanticProperties.HeadingLevel="Level2" />
                         <Label
-                    Text="Make sure to only choose folders that immediately contain other song folders (for example: Studio One/Songs)" />
+                    Text="Select either individual folders containing your song or a folder that immediately contains other song folders (for example: Studio One/Songs; Studio One/Songs/My Epic Song)" />
                         <CollectionView ItemsSource="{Binding ProjectFolders, Mode=TwoWay}">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
@@ -132,7 +132,7 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                         <Button
-                    Text="Add Another Project Directory"
+                    Text="Add Another Song(s) Directory"
                     Clicked="OnAddProjectDirClicked" />
                     </StackLayout>
                 </ScrollView>
@@ -179,6 +179,16 @@
                     Text="Replace Files"
                     IsEnabled="{Binding CanSubmit}"
                     Clicked="OnSubmitClicked"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Rectangle Grid.Column="0" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="or" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                        <Rectangle Grid.Column="2" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
+                    </Grid>
                     <Button
                         Text="Restore Files"
                         IsEnabled="{Binding CanRestore}"

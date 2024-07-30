@@ -41,6 +41,7 @@ namespace Studio_One_File_Finder
 
 		public delegate void Callback(string message);
 		public delegate void CallbackAlert(string message, string title="Alert");
+		public delegate Task<bool> CallbackPrompt(string title, string message, string yes, string no);
 		CallbackAlert _currentHandler;
 		Callback _currentOutput;
 
@@ -53,6 +54,7 @@ namespace Studio_One_File_Finder
 		private Dictionary<string, string?> _discoveredFiles;
 		private List<string> _sampleFolders;
 		private ExtraSettings _userConfig;
+		private List<string> _FilesRestored;
 		public FileUpdater()
 		{
 			InitClass(true);
@@ -68,6 +70,11 @@ namespace Studio_One_File_Finder
 				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
 			};
 			if (resetCachedPaths) _discoveredFiles = new();
+			InitBackupVars();
+		}
+		private void InitBackupVars()
+		{
+			_FilesRestored = new();
 		}
 		private void ValidatePaths(List<string> dirs)
 		{
@@ -496,17 +503,27 @@ namespace Studio_One_File_Finder
 				{
 					File.Delete(fileName);
 					File.Move(backup, fileName);
+					_FilesRestored.Add(fileName);
 				}
 			}
 		}
-		public void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output)
+		public async void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
 			{
 				handler("The file updater is already running!", "Holup");
 				return;
 			}
+			ValidatePaths(projectDirectories);
+			StringBuilder foldersToCheck = new StringBuilder();
+			projectDirectories.Select(x => GetFileName(x, Path.DirectorySeparatorChar)).ToList().ForEach(x => foldersToCheck.AppendLine(x));
+			// prompt the user
+			if(!await verifyContinue("Continue?", $"Are you sure you want to continue? All your songs that have a backup will be restored to how they were before I was in their life.\n\nSong folders/directories to restore:\n{foldersToCheck}", "Yes", "No"))
+			{
+				return;
+			}
 			CurrentlyRunning = true;
+			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
 			try
@@ -518,7 +535,7 @@ namespace Studio_One_File_Finder
 				_currentHandler($"A problem occured while attempting to restore your backups:\n{ex.Message}", "Fail");
 			}
 
-
+			handler($"{_FilesRestored.Count} files have been restored.", "Restore Complete");
 			CurrentlyRunning = false;
 		}
 	}
