@@ -88,6 +88,10 @@ namespace Studio_One_File_Finder
 		{
 			FilePreferences.RestoreFiles();
 		}
+		private async void OnDeleteBackupsClicked(object sender, EventArgs e)
+		{
+			FilePreferences.DeleteBackups();
+		}
 		private async void OnBrowseClicked(object sender, EventArgs e)
 		{
 			var btn = sender as Button;

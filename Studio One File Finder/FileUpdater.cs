@@ -518,7 +518,7 @@ namespace Studio_One_File_Finder
 			StringBuilder foldersToCheck = new StringBuilder();
 			projectDirectories.Select(x => GetFileName(x, Path.DirectorySeparatorChar)).ToList().ForEach(x => foldersToCheck.AppendLine(x));
 			// prompt the user
-			if(!await verifyContinue("Continue?", $"Are you sure you want to continue? All your songs that have a backup will be restored to how they were before I was in their life.\n\nSong folders/directories to restore:\n{foldersToCheck}", "Yes", "No"))
+			if(!await verifyContinue("Continue?", $"Are you sure you want to continue? All your songs that have a file finder backup will be restored to how they were before I was in their life.\n\nSong folders/directories to restore:\n{foldersToCheck}", "Yes", "No"))
 			{
 				return;
 			}
@@ -537,6 +537,23 @@ namespace Studio_One_File_Finder
 
 			handler($"{_FilesRestored.Count} files have been restored.", "Restore Complete");
 			CurrentlyRunning = false;
+		}
+		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		{
+			if (CurrentlyRunning)
+			{
+				handler("The file updater is already running!", "Holup");
+				return;
+			}
+			ValidatePaths(projectDirectories);
+			StringBuilder foldersToCheck = new StringBuilder();
+			projectDirectories.Select(x => GetFileName(x, Path.DirectorySeparatorChar)).ToList().ForEach(x => foldersToCheck.AppendLine(x));
+			// prompt the user
+			if (!await verifyContinue("Are you sure?", $"Are you absolutely positive you want to continue? All your selected songs will delete their file finder backup (any file ending in \"{BACKUP_FILE_EXTENSION}\". " +
+				$"There is no going back from here (your only hope of restoring would be having to use a Studio One autosave IF it even exists).\n\nSong folders/directories to check:\n{foldersToCheck}", "Yes", "No"))
+			{
+				return;
+			}
 		}
 	}
 }

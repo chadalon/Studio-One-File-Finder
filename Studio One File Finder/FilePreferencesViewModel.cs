@@ -209,6 +209,29 @@ namespace Studio_One_File_Finder
 			OutputText = "";
 			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
 		}
+		public void DeleteBackups()
+		{
+			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+
+			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
+			{
+				// error popup
+				await Alert.Invoke(title, message, "okay bruv");
+			};
+			FileUpdater.Callback outputHandler = (string message) =>
+			{
+				DateTime curDate = DateTime.Now;
+				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
+				OutputText += msgToOut;
+			};
+			FileUpdater.CallbackPrompt askToCont = (string title, string message, string yes, string no) =>
+			{
+				return PromptAlert(title, message, yes, no);
+			};
+			OutputText = "";
+			_fileUpdater.DeleteBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
+
+		}
 
 		public void AddNewSampleFolder()
 		{
