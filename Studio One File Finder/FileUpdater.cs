@@ -538,6 +538,14 @@ namespace Studio_One_File_Finder
 			handler($"{_FilesRestored.Count} files have been restored.", "Restore Complete");
 			CurrentlyRunning = false;
 		}
+		private void DeleteFileIfExists(string songFolderPath)
+		{
+			var backupFiles = Directory.GetFiles(songFolderPath, $"*{BACKUP_FILE_EXTENSION}").ToList();
+			foreach (var backup in backupFiles)
+			{
+				File.Delete(backup);
+			}
+		}
 		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
@@ -554,6 +562,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
+			DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
 		}
 	}
 }

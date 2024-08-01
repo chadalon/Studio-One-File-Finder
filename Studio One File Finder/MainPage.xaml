@@ -169,12 +169,19 @@
                               IsChecked="{Binding OverWriteValidPaths, Mode=TwoWay}" />
                                 <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>
-                            <Button
-                            Text="Delete Backup Files"
-                            IsEnabled="{Binding CanRestore}"
-                            Clicked="OnDeleteBackupsClicked">
-                                <ToolTipProperties.Text>Delete all backup files this app has created. Not Recommended unless you've tested all the new files!! Even then it's not recommended...</ToolTipProperties.Text>
-                            </Button>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    Grid.Column="0"
+                                    Text="Delete Backup Files"
+                                    IsEnabled="{Binding CanRestore}"
+                                    Clicked="OnDeleteBackupsClicked">
+                                    <ToolTipProperties.Text>Delete all backup files this app has created. Not Recommended unless you've tested all the new files!</ToolTipProperties.Text>
+                                </Button>
+                            </Grid>
                         </VerticalStackLayout>
                     </mct:Expander.Content>
 
