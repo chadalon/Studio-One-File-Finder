@@ -42,8 +42,9 @@ namespace Studio_One_File_Finder
 		public delegate void Callback(string message);
 		public delegate void CallbackAlert(string message, string title="Alert");
 		public delegate Task<bool> CallbackPrompt(string title, string message, string yes, string no);
-		CallbackAlert _currentHandler;
+		CallbackAlert _currentHandler; // TODO move these into the constructor and stop passing them in through delete, restore, etc.
 		Callback _currentOutput;
+		FilePreferencesViewModel.ClearConsole _clearConsole;// TODO move ClearConsole out of fpvm into here
 
 		private string _currentSongFolderName;
 
@@ -54,9 +55,11 @@ namespace Studio_One_File_Finder
 		private Dictionary<string, string?> _discoveredFiles;
 		private List<string> _sampleFolders;
 		private ExtraSettings _userConfig;
-		private List<string> _FilesRestored;
-		public FileUpdater()
+		private List<string> _filesRestored;
+		private List<string> _backupsDeleted;
+		public FileUpdater(FilePreferencesViewModel.ClearConsole clearConsole)
 		{
+			_clearConsole = clearConsole;
 			InitClass(true);
 		}
 		private void InitClass(bool resetCachedPaths=false)
@@ -74,7 +77,8 @@ namespace Studio_One_File_Finder
 		}
 		private void InitBackupVars()
 		{
-			_FilesRestored = new();
+			_filesRestored = new();
+			_backupsDeleted = new();
 		}
 		private void ValidatePaths(List<string> dirs)
 		{
@@ -369,6 +373,10 @@ namespace Studio_One_File_Finder
 				{
 					currentFilePath = element.Attributes?.GetNamedItem("url")?.Value;
 					if (string.IsNullOrEmpty(currentFilePath)) return;
+					if (currentFilePath.StartsWith("package://"))
+					{
+						return;
+					}
 				}
 				string fileName = GetFileName(currentFilePath);
 				if (!modifiedFileName)
@@ -503,7 +511,7 @@ namespace Studio_One_File_Finder
 				{
 					File.Delete(fileName);
 					File.Move(backup, fileName);
-					_FilesRestored.Add(fileName);
+					_filesRestored.Add(fileName);
 				}
 			}
 		}
@@ -523,6 +531,8 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CurrentlyRunning = true;
+
+			_clearConsole();
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -535,7 +545,7 @@ namespace Studio_One_File_Finder
 				_currentHandler($"A problem occured while attempting to restore your backups:\n{ex.Message}", "Fail");
 			}
 
-			handler($"{_FilesRestored.Count} files have been restored.", "Restore Complete");
+			handler($"{_filesRestored.Count} files have been restored.", "Restore Complete");
 			CurrentlyRunning = false;
 		}
 		private void DeleteFileIfExists(string songFolderPath)
@@ -544,6 +554,7 @@ namespace Studio_One_File_Finder
 			foreach (var backup in backupFiles)
 			{
 				File.Delete(backup);
+				_backupsDeleted.Add(backup);
 			}
 		}
 		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
@@ -562,7 +573,23 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
+			CurrentlyRunning = true;
+
+			_clearConsole();
+			InitBackupVars();
+			_currentHandler = handler;
+			_currentOutput = output;
+			try
+			{
+				DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
+			}
+			catch (Exception ex)
+			{
+				_currentHandler($"A problem occured while attempting to delete your backups:\n{ex.Message}", "Fail");
+			}
+
+			handler($"{_backupsDeleted.Count} files have been deleted.", "Deletion Complete");
+			CurrentlyRunning = false;
 		}
 	}
 }

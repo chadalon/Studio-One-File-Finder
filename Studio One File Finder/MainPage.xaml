@@ -7,6 +7,9 @@
         <Style TargetType="HorizontalStackLayout" x:Key="CBAndLabel">
             <Setter Property="Margin" Value="10,0" />
         </Style>
+        <Style TargetType="CheckBox" x:Key="JustCB">
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
     </ContentPage.Resources>
 
     <Grid>
@@ -155,17 +158,19 @@
                 </VerticalStackLayout>
                 <mct:Expander Grid.Row="1" Margin="0,20">
                     <mct:Expander.Header>
-                        <Label Text="Advanced"></Label>
+                        <Label Text="Advanced" Margin="0,10"></Label>
                     </mct:Expander.Header>
                     <mct:Expander.Content>
-                        <VerticalStackLayout>
+                        <VerticalStackLayout Spacing="15">
                             <HorizontalStackLayout ToolTipProperties.Text="If a file ends with a number in parentheses, we will try to replace it if it's invalid.">
                                 <CheckBox x:Name="DupeFilesCheckBox"
+                                          Style="{StaticResource JustCB}"
                                   IsChecked="{Binding UpdateDuplicates, Mode=TwoWay}" />
                                 <Label Text="Assume Duplicate Files" VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>
                             <HorizontalStackLayout ToolTipProperties.Text="Even if a file's current path is valid, change it to one in the sample directories if found. Not recommended!">
                                 <CheckBox x:Name="OverwriteValidPathsCheckBox"
+                                          Style="{StaticResource JustCB}"
                               IsChecked="{Binding OverWriteValidPaths, Mode=TwoWay}" />
                                 <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>

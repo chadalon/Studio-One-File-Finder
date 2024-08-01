@@ -22,6 +22,8 @@ namespace Studio_One_File_Finder
 		public event MyPromptEventAction PromptAlert;
 		public delegate void ControlMusic(bool play);
 		public event MyEventAction Play;
+		public delegate void ClearConsole();
+
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
 		{
 			if (curVal != null && curVal.Equals(newVal) || curVal == null && newVal == null) return;
@@ -125,7 +127,11 @@ namespace Studio_One_File_Finder
 
 		public FilePreferencesViewModel()
 		{
-			_fileUpdater = new();
+			ClearConsole clearConsole = () =>
+			{
+				OutputText = "";
+			};
+			_fileUpdater = new(clearConsole);
 
 			ReplaceSampleOne = true;
 			OverWriteValidPaths = false;
@@ -206,7 +212,6 @@ namespace Studio_One_File_Finder
 			{
 				return PromptAlert(title, message, yes, no);
 			};
-			OutputText = "";
 			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
 		}
 		public void DeleteBackups()
@@ -228,7 +233,6 @@ namespace Studio_One_File_Finder
 			{
 				return PromptAlert(title, message, yes, no);
 			};
-			OutputText = "";
 			_fileUpdater.DeleteBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
 
 		}
