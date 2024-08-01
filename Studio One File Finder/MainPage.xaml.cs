@@ -35,10 +35,8 @@ namespace Studio_One_File_Finder
 		{
 			FilePreferences = filePreferencesViewModel;
 			BindingContext = filePreferencesViewModel;
-			filePreferencesViewModel.Alert += (string title, string message, string buttonContent) =>
-			{
-				DisplayAlert(title, message, buttonContent);
-			};
+			filePreferencesViewModel.Alert += DisplayAlert;
+			filePreferencesViewModel.PromptAlert += DisplayAlert;
 			InitializeComponent();
 
 			var thing = FilePreferences.WhenAnyValue(x => x.OutputText).Subscribe(_ =>
@@ -63,7 +61,8 @@ namespace Studio_One_File_Finder
 
 		private void OnPageLoad(object? sender, EventArgs e)
 		{
-			musicPlayer.Play();
+			// TODO uncomment this when ready
+			//musicPlayer.Play();
 		}
 
 		private void OnMusicCheckBoxClicked(object? sender, EventArgs e)
@@ -84,6 +83,14 @@ namespace Studio_One_File_Finder
 		private async void OnSubmitClicked(object sender, EventArgs e)
 		{
 			FilePreferences.SubmitEverything();
+		}
+		private async void OnRestoreClicked(object sender, EventArgs e)
+		{
+			FilePreferences.RestoreFiles();
+		}
+		private async void OnDeleteBackupsClicked(object sender, EventArgs e)
+		{
+			FilePreferences.DeleteBackups();
 		}
 		private async void OnBrowseClicked(object sender, EventArgs e)
 		{

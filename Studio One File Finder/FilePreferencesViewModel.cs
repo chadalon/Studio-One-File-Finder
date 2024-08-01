@@ -16,8 +16,10 @@ namespace Studio_One_File_Finder
 {
 	public class FilePreferencesViewModel : INotifyPropertyChanged
 	{
-		public delegate void MyEventAction(string title, string message, string buttonContent);
+		public delegate Task MyEventAction(string title, string message, string buttonContent);
 		public event MyEventAction Alert;
+		public delegate Task<bool> MyPromptEventAction(string title, string message, string yes, string no);
+		public event MyPromptEventAction PromptAlert;
 		public delegate void ControlMusic(bool play);
 		public event MyEventAction Play;
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
@@ -88,6 +90,16 @@ namespace Studio_One_File_Finder
 			}
 		}
 
+		private bool _canRestore;
+		public bool CanRestore
+		{
+			get => _canRestore;
+			set
+			{
+				SetIfDiff(ref _canRestore, value);
+			}
+		}
+
 		private bool _isMusicPlaying;
 		public bool IsMusicPlaying
 		{
@@ -120,6 +132,7 @@ namespace Studio_One_File_Finder
 			UpdateDuplicates = false;
 
 			CanSubmit = false;
+			CanRestore = false;
 			IsMusicPlaying = true;
 			SampleFolders = new();
 			ProjectFolders = new();
@@ -159,7 +172,7 @@ namespace Studio_One_File_Finder
 			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
-				Alert?.Invoke(title, message, "okay bruv");
+				await Alert.Invoke(title, message, "okay bruv");
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
@@ -173,6 +186,51 @@ namespace Studio_One_File_Finder
 				UpdateDuplicateFiles = UpdateDuplicates
 			};
 			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
+		}
+		public void RestoreFiles()
+		{
+			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+
+			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
+			{
+				// error popup
+				await Alert.Invoke(title, message, "okay bruv");
+			};
+			FileUpdater.Callback outputHandler = (string message) =>
+			{
+				DateTime curDate = DateTime.Now;
+				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
+				OutputText += msgToOut;
+			};
+			FileUpdater.CallbackPrompt askToCont = (string title, string message, string yes, string no) =>
+			{
+				return PromptAlert(title, message, yes, no);
+			};
+			OutputText = "";
+			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
+		}
+		public void DeleteBackups()
+		{
+			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
+
+			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
+			{
+				// error popup
+				await Alert.Invoke(title, message, "okay bruv");
+			};
+			FileUpdater.Callback outputHandler = (string message) =>
+			{
+				DateTime curDate = DateTime.Now;
+				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
+				OutputText += msgToOut;
+			};
+			FileUpdater.CallbackPrompt askToCont = (string title, string message, string yes, string no) =>
+			{
+				return PromptAlert(title, message, yes, no);
+			};
+			OutputText = "";
+			_fileUpdater.DeleteBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
+
 		}
 
 		public void AddNewSampleFolder()
@@ -202,6 +260,7 @@ namespace Studio_One_File_Finder
 					{
 						(sender as FolderInfo).VerifyPath();
 						SetCanSubmit();
+						SetCanRestore();
 					};
 				}
 			}
@@ -210,6 +269,7 @@ namespace Studio_One_File_Finder
 
 			}
 			SetCanSubmit();
+			SetCanRestore();
 		}
 		/// <summary>
 		/// If we have one valid folder for samlples and one valid for projects, we can submit
@@ -217,6 +277,10 @@ namespace Studio_One_File_Finder
 		private void SetCanSubmit()
 		{
 			CanSubmit = SampleFolders.Any(x => x.PathIsValid) && ProjectFolders.Any(x => x.PathIsValid);
+		}
+		private void SetCanRestore()
+		{
+			CanRestore = ProjectFolders.Any(x => x.PathIsValid);
 		}
 	}
 	public class FolderInfo : INotifyPropertyChanged

@@ -24,12 +24,12 @@
                 Style="{StaticResource Headline}"
                 SemanticProperties.HeadingLevel="Level1" />
 
-            <Label
+            <!--<Label
                 Grid.Row="1"
                 Text="Welcome to &#10;.NET Multi-platform App UI"
                 Style="{StaticResource SubHeadline}"
                 SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I" />
+                SemanticProperties.Description="Welcome to dot net Multi platform App U I" />-->
         </StackLayout>
         
         <!-- User Options -->
@@ -98,7 +98,7 @@
                     Style="{StaticResource SubHeadline}"
                     SemanticProperties.HeadingLevel="Level2" />
                         <Label
-                    Text="Make sure to only choose folders that immediately contain other song folders (for example: Studio One/Songs)" />
+                    Text="Select either individual folders containing your song or a folder that immediately contains other song folders (for example: Studio One/Songs; Studio One/Songs/My Epic Song)" />
                         <CollectionView ItemsSource="{Binding ProjectFolders, Mode=TwoWay}">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
@@ -132,7 +132,7 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                         <Button
-                    Text="Add Another Project Directory"
+                    Text="Add Another Song(s) Directory"
                     Clicked="OnAddProjectDirClicked" />
                     </StackLayout>
                 </ScrollView>
@@ -143,7 +143,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="55" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <VerticalStackLayout Grid.Row="0">
@@ -169,14 +169,61 @@
                               IsChecked="{Binding OverWriteValidPaths, Mode=TwoWay}" />
                                 <Label Text="Overwrite Valid Paths" VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    Grid.Column="0"
+                                    Text="Delete Backup Files"
+                                    IsEnabled="{Binding CanRestore}"
+                                    Clicked="OnDeleteBackupsClicked">
+                                    <ToolTipProperties.Text>Delete all backup files this app has created. Not Recommended unless you've tested all the new files!</ToolTipProperties.Text>
+                                </Button>
+                            </Grid>
                         </VerticalStackLayout>
                     </mct:Expander.Content>
 
                 </mct:Expander>
-                <Button Grid.Row="2"
-                    Text="Replace Files"
+                <VerticalStackLayout Grid.Row="2"
+                                     Spacing="10">
+                    <Button
+                    Text="Replace Missing Samples"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Golden}, Dark={StaticResource GoldenDark}}"
                     IsEnabled="{Binding CanSubmit}"
                     Clicked="OnSubmitClicked"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width=".1*"/>
+                            </Grid.ColumnDefinitions>
+                            <Rectangle Grid.Column="1" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
+                        </Grid>
+                        <Label Grid.Column="1" Text="or" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+                        <Grid Grid.Column="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width=".1*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="4*"/>
+                            </Grid.ColumnDefinitions>
+                            <Rectangle Grid.Column="1" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
+                        </Grid>
+                    </Grid>
+                    <Button
+                        Text="Restore Files"
+                        IsEnabled="{Binding CanRestore}"
+                        Clicked="OnRestoreClicked">
+                        <ToolTipProperties.Text>Restore all files this app has modified to their original states</ToolTipProperties.Text>
+                    </Button>
+                </VerticalStackLayout>
                 <ScrollView Grid.Row="3" x:Name="OutputScroller">
                     <Label
                     x:Name="OutputScrollerLabel"

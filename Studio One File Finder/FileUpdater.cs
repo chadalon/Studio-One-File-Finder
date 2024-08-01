@@ -41,6 +41,7 @@ namespace Studio_One_File_Finder
 
 		public delegate void Callback(string message);
 		public delegate void CallbackAlert(string message, string title="Alert");
+		public delegate Task<bool> CallbackPrompt(string title, string message, string yes, string no);
 		CallbackAlert _currentHandler;
 		Callback _currentOutput;
 
@@ -53,6 +54,7 @@ namespace Studio_One_File_Finder
 		private Dictionary<string, string?> _discoveredFiles;
 		private List<string> _sampleFolders;
 		private ExtraSettings _userConfig;
+		private List<string> _FilesRestored;
 		public FileUpdater()
 		{
 			InitClass(true);
@@ -62,15 +64,19 @@ namespace Studio_One_File_Finder
 			_refUpdateCount = 0;
 			_sampleOneUpdateCount = 0;
 			_projectsUpdated = 0;
-			count = 0;
 			_sampleFolders = new();
 			_nodesToFind = new()
 			{
 				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
 			};
 			if (resetCachedPaths) _discoveredFiles = new();
+			InitBackupVars();
 		}
-		private void ValidatePaths(List<string> dirs, Callback handler)
+		private void InitBackupVars()
+		{
+			_FilesRestored = new();
+		}
+		private void ValidatePaths(List<string> dirs)
 		{
 			for (int i = dirs.Count - 1; i >= 0; i--)
 			{
@@ -81,16 +87,41 @@ namespace Studio_One_File_Finder
 				dirs[i] = Path.GetFullPath(dirs[i]);
 				if (!Directory.Exists(dirs[i]))
 				{
-					handler($"Invalid directory: {dirs[i]}");
+					_currentHandler($"Invalid directory: {dirs[i]}");
 					dirs.RemoveAt(i);
 				}
+			}
+		}
+		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier)
+		{
+
+			count = 0;
+			foreach (string projectsDir in projectDirectories)
+			{
+
+				var songFolders = Directory.GetDirectories(projectsDir);
+				if (songFolders.Length == 0)
+				{
+					_currentOutput($"No song folders found in {projectsDir}");
+					continue;
+				}
+				foreach (string songFolderPath in songFolders)
+				{
+					modifier(songFolderPath);
+					count++;
+					if (count > 4)
+					{
+						break;
+					}
+				}
+
 			}
 		}
 		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
 		{
 			if (CurrentlyRunning)
 			{
-				_currentHandler("The file updater is already running!", "Holup");
+				handler("The file updater is already running!", "Holup");
 				return;
 			}
 			CurrentlyRunning = true;
@@ -104,8 +135,8 @@ namespace Studio_One_File_Finder
 
 			_currentHandler = handler;
 			_currentOutput = output;
-			ValidatePaths(sampleDirectories, output);
-			ValidatePaths(projectDirectories, output);
+			ValidatePaths(sampleDirectories);
+			ValidatePaths(projectDirectories);
 
 			_sampleFolders = sampleDirectories;
 
@@ -120,26 +151,7 @@ namespace Studio_One_File_Finder
 				return;
 			}
 
-			foreach (string projectsDir in projectDirectories)
-			{
-
-				var songFolders = Directory.GetDirectories(projectsDir);
-				if (songFolders.Length == 0)
-				{
-					output($"No song folders found in {projectsDir}");
-					continue;
-				}
-				foreach (string songFolderPath in songFolders)
-				{
-					UpdateSong(songFolderPath);
-					count++;
-					if (count > 4)
-					{
-						break;
-					}
-				}
-
-			}
+			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			if (_nodesToFind.ContainsKey(FileType.SampleOne))
 			{
@@ -251,14 +263,12 @@ namespace Studio_One_File_Finder
 			}
 			else
 			{
-				//File.Delete(sourceFilePath);
 				string newBackupPath = sourceFilePath + BACKUP_FILE_EXTENSION;
-				if (File.Exists(newBackupPath))
+				if (!File.Exists(newBackupPath)) // if a backup exists, leave it be
 				{
-					File.Delete(newBackupPath);
+					File.Move(sourceFilePath, newBackupPath);
 				}
 
-				File.Move(sourceFilePath, newBackupPath);
 				File.Move(tempFilePath, sourceFilePath);
 				_projectsUpdated++;
 			}
@@ -301,9 +311,9 @@ namespace Studio_One_File_Finder
 
 			return Beautify(xmlDoc);
 		}
-		private string GetFileName(string fullPath)
+		private string GetFileName(string fullPath, char dirSeparator='/')
 		{
-			string[] dirName = fullPath.Split("/");
+			string[] dirName = fullPath.Split(dirSeparator);
 			return dirName[dirName.Length - 1];
 		}
 		/// <summary>
@@ -480,6 +490,79 @@ namespace Studio_One_File_Finder
 			}
 			int tabCount = 0;
 			return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + GetInnerXML(doc.DocumentElement, tabCount);
+		}
+
+		private void RestoreFileIfExists(string songFolderPath)
+		{
+			var backupFiles = Directory.GetFiles(songFolderPath, $"*{BACKUP_FILE_EXTENSION}").ToList();
+			var songFiles = Directory.GetFiles(songFolderPath, $"*.song").ToList();
+			foreach (var backup in backupFiles)
+			{
+				var fileName = backup.Replace(BACKUP_FILE_EXTENSION, "");
+				if (songFiles.Contains(fileName))
+				{
+					File.Delete(fileName);
+					File.Move(backup, fileName);
+					_FilesRestored.Add(fileName);
+				}
+			}
+		}
+		public async void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		{
+			if (CurrentlyRunning)
+			{
+				handler("The file updater is already running!", "Holup");
+				return;
+			}
+			ValidatePaths(projectDirectories);
+			StringBuilder foldersToCheck = new StringBuilder();
+			projectDirectories.Select(x => GetFileName(x, Path.DirectorySeparatorChar)).ToList().ForEach(x => foldersToCheck.AppendLine(x));
+			// prompt the user
+			if(!await verifyContinue("Continue?", $"Are you sure you want to continue? All your songs that have a file finder backup will be restored to how they were before I was in their life.\n\nSong folders/directories to restore:\n{foldersToCheck}", "Yes", "No"))
+			{
+				return;
+			}
+			CurrentlyRunning = true;
+			InitBackupVars();
+			_currentHandler = handler;
+			_currentOutput = output;
+			try
+			{
+				DoStuffWithSongsInThisDir(projectDirectories, RestoreFileIfExists);
+			}
+			catch (Exception ex)
+			{
+				_currentHandler($"A problem occured while attempting to restore your backups:\n{ex.Message}", "Fail");
+			}
+
+			handler($"{_FilesRestored.Count} files have been restored.", "Restore Complete");
+			CurrentlyRunning = false;
+		}
+		private void DeleteFileIfExists(string songFolderPath)
+		{
+			var backupFiles = Directory.GetFiles(songFolderPath, $"*{BACKUP_FILE_EXTENSION}").ToList();
+			foreach (var backup in backupFiles)
+			{
+				File.Delete(backup);
+			}
+		}
+		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		{
+			if (CurrentlyRunning)
+			{
+				handler("The file updater is already running!", "Holup");
+				return;
+			}
+			ValidatePaths(projectDirectories);
+			StringBuilder foldersToCheck = new StringBuilder();
+			projectDirectories.Select(x => GetFileName(x, Path.DirectorySeparatorChar)).ToList().ForEach(x => foldersToCheck.AppendLine(x));
+			// prompt the user
+			if (!await verifyContinue("Are you sure?", $"Are you absolutely positive you want to continue? All your selected songs will delete their file finder backup (any file ending in \"{BACKUP_FILE_EXTENSION}\". " +
+				$"There is no going back from here (your only hope of restoring would be having to use a Studio One autosave IF it even exists).\n\nSong folders/directories to check:\n{foldersToCheck}", "Yes", "No"))
+			{
+				return;
+			}
+			DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
 		}
 	}
 }
