@@ -98,27 +98,41 @@ namespace Studio_One_File_Finder
 		}
 		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier)
 		{
-
 			count = 0;
+			HashSet<string> songFolders = new();
+			void FindSongFolders(DirectoryInfo currentDir)
+			{
+				var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
+				if (songFiles.Count > 0 && currentDir.Name != "History") // if we excluding autosaves
+				{
+					songFolders.Add(currentDir.FullName);
+					//return; // if we only counting song folders
+				}
+				foreach (var item in currentDir.EnumerateDirectories())
+				{
+					FindSongFolders(item);
+				}
+			}
+
 			foreach (string projectsDir in projectDirectories)
 			{
+				int countBefore = songFolders.Count;
+				FindSongFolders(new DirectoryInfo(projectsDir));
 
-				var songFolders = Directory.GetDirectories(projectsDir);
-				if (songFolders.Length == 0)
+				if (songFolders.Count - countBefore == 0)
 				{
 					_currentOutput($"No song folders found in {projectsDir}");
 					continue;
 				}
-				foreach (string songFolderPath in songFolders)
+			}
+			foreach (string songFolderPath in songFolders)
+			{
+				modifier(songFolderPath);
+				count++;
+				if (count > 4)
 				{
-					modifier(songFolderPath);
-					count++;
-					if (count > 4)
-					{
-						break;
-					}
+					break;
 				}
-
 			}
 		}
 		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
@@ -167,17 +181,19 @@ namespace Studio_One_File_Finder
 		private void UpdateSong(string songFolderPath)
 		{
 			// TODO just selecting first legit song file. Do ppl ever store multiple in their folders??
-			var songFile = Directory.GetFiles(songFolderPath, "*.song").Where(x => !Path.GetFileName(x).StartsWith("._")).FirstOrDefault();
+			var songFiles = Directory.GetFiles(songFolderPath, "*.song").Where(x => !Path.GetFileName(x).StartsWith("._")).ToList();
 			//throw new Exception("need to exclude ._*.song files...");
-			if (songFile == null)
+			if (songFiles.Count == 0)
 			{
 				// TODO maybe check autosaves here (could make a setting for this)
 
-				_currentOutput($"No song file found in {songFolderPath} (it may have some autosaves)...skipping to next");
+				_currentOutput($"No song files found in {songFolderPath} (it may have some autosaves)...skipping to next");
 				return;
 			}
-
-			LoadProject(songFile);
+			foreach (var songFile in songFiles)
+			{
+				LoadProject(songFile);
+			}
 		}
 		/// <summary>
 		/// Write out the entry
@@ -510,9 +526,9 @@ namespace Studio_One_File_Finder
 				if (songFiles.Contains(fileName))
 				{
 					File.Delete(fileName);
-					File.Move(backup, fileName);
-					_filesRestored.Add(fileName);
 				}
+				File.Move(backup, fileName);
+				_filesRestored.Add(fileName);
 			}
 		}
 		public async void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
