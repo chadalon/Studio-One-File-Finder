@@ -177,7 +177,7 @@ namespace Studio_One_File_Finder
 			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
-				await Alert.Invoke(title, message, "okay bruv");
+				await Application.Current.Dispatcher.DispatchAsync(async () => await Alert.Invoke(title, message, "okay bruv"));
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
@@ -199,7 +199,7 @@ namespace Studio_One_File_Finder
 			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
-				await Alert.Invoke(title, message, "okay bruv");
+				await Application.Current.Dispatcher.DispatchAsync(async () => await Alert.Invoke(title, message, "okay bruv"));
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
@@ -207,9 +207,9 @@ namespace Studio_One_File_Finder
 				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
 				OutputText += msgToOut;
 			};
-			FileUpdater.CallbackPrompt askToCont = (string title, string message, string yes, string no) =>
+			FileUpdater.CallbackPrompt askToCont = async (string title, string message, string yes, string no) =>
 			{
-				return PromptAlert(title, message, yes, no);
+				return await Application.Current.Dispatcher.DispatchAsync(async () => await PromptAlert(title, message, yes, no));
 			};
 			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
 		}
@@ -220,7 +220,7 @@ namespace Studio_One_File_Finder
 			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
-				await Alert.Invoke(title, message, "okay bruv");
+				await Application.Current.Dispatcher.DispatchAsync(async () => await Alert.Invoke(title, message, "okay bruv"));
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
@@ -228,9 +228,9 @@ namespace Studio_One_File_Finder
 				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
 				OutputText += msgToOut;
 			};
-			FileUpdater.CallbackPrompt askToCont = (string title, string message, string yes, string no) =>
+			FileUpdater.CallbackPrompt askToCont = async (string title, string message, string yes, string no) =>
 			{
-				return PromptAlert(title, message, yes, no);
+				return await Application.Current.Dispatcher.DispatchAsync(async () => await PromptAlert(title, message, yes, no));
 			};
 			_fileUpdater.DeleteBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
 
@@ -386,7 +386,7 @@ namespace Studio_One_File_Finder
 			}
 			catch (Exception ex)
 			{
-				await _alert.Invoke("Problem with directory", ex.Message, "okay bruv");
+				await Application.Current.Dispatcher.DispatchAsync(async () => _alert.Invoke("Problem with directory", ex.Message, "okay bruv"));
 				return false;
 			}
 		}

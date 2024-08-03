@@ -41,7 +41,7 @@ namespace Studio_One_File_Finder
 
 			var thing = FilePreferences.WhenAnyValue(x => x.OutputText).Subscribe(_ =>
 			{
-				OutputScroller.ScrollToAsync(OutputScrollerLabel, ScrollToPosition.End, false);
+				Application.Current.Dispatcher.Dispatch(() => OutputScroller.ScrollToAsync(OutputScrollerLabel, ScrollToPosition.End, false));
 			});
 
 			var musicObservable = FilePreferences.WhenAnyValue(x => x.IsMusicPlaying).Subscribe(x =>
@@ -82,15 +82,15 @@ namespace Studio_One_File_Finder
 		}
 		private async void OnSubmitClicked(object sender, EventArgs e)
 		{
-			FilePreferences.SubmitEverything();
+			await Task.Run(FilePreferences.SubmitEverything);
 		}
 		private async void OnRestoreClicked(object sender, EventArgs e)
 		{
-			FilePreferences.RestoreFiles();
+			await Task.Run(FilePreferences.RestoreFiles);
 		}
 		private async void OnDeleteBackupsClicked(object sender, EventArgs e)
 		{
-			FilePreferences.DeleteBackups();
+			await Task.Run(FilePreferences.DeleteBackups);
 		}
 		private async void OnBrowseClicked(object sender, EventArgs e)
 		{

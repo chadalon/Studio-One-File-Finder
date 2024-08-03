@@ -301,7 +301,19 @@ namespace Studio_One_File_Finder
 		/// <returns>null if the file isn't found</returns>
 		string? SearchMyDirOfficer(DirectoryInfo currentDir, string fileName)
 		{
-			var triedFile = currentDir.EnumerateFiles().ToList().FirstOrDefault(x => x.Name == fileName);
+			FileInfo? triedFile;
+			try
+			{
+				triedFile = currentDir.EnumerateFiles().ToList().FirstOrDefault(x => x.Name == fileName);
+			}
+			catch (Exception ex)
+			{
+				// We probably just don't have permissions.
+				//add to an error log
+				_currentOutput(ex.Message);
+				return null;
+			}
+
 			if (triedFile != null)
 			{
 				return triedFile.FullName;
