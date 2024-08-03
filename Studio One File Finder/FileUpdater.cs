@@ -310,7 +310,7 @@ namespace Studio_One_File_Finder
 			{
 				// We probably just don't have permissions.
 				//add to an error log
-				_currentOutput(ex.Message);
+				_currentOutput($"Problem with searching folder for samples:\n{ex.Message}");
 				return null;
 			}
 
