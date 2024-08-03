@@ -62,6 +62,15 @@ namespace Studio_One_File_Finder
 				SetIfDiff(ref _replaceSampleOne, value);
 			}
 		}
+		private bool _replaceImpact;
+		public bool ReplaceImpact
+		{
+			get => _replaceImpact;
+			set
+			{
+				SetIfDiff(ref _replaceImpact, value);
+			}
+		}
 		private bool _overWriteValidPaths;
 		public bool OverWriteValidPaths
 		{
@@ -133,6 +142,7 @@ namespace Studio_One_File_Finder
 			_fileUpdater = new(clearConsole);
 
 			ReplaceSampleOne = true;
+			ReplaceImpact = true;
 			OverWriteValidPaths = false;
 			UpdateDuplicates = false;
 
@@ -174,6 +184,8 @@ namespace Studio_One_File_Finder
 			List<FileType> extraPlugins = new List<FileType>();
 			if (ReplaceSampleOne) // TODO there's a better way to do this with observables, hashtables, etc
 				extraPlugins.Add(FileType.SampleOne);
+			if (ReplaceImpact)
+				extraPlugins.Add(FileType.Impact);
 			FileUpdater.CallbackAlert errorHandler = async (string message, string title) =>
 			{
 				// error popup
