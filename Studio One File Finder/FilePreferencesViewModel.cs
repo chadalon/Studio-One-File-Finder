@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Reactive;
 using DynamicData.Binding;
 using System.Collections.Specialized;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Studio_One_File_Finder
 {
@@ -144,8 +143,8 @@ namespace Studio_One_File_Finder
 			ProjectFolders = new();
 			SampleFolders.CollectionChanged += new NotifyCollectionChangedEventHandler(FoldersCollectionChanged);
 			ProjectFolders.CollectionChanged += new NotifyCollectionChangedEventHandler(FoldersCollectionChanged);
-			SampleFolders.Add(new FolderInfo(string.Empty, 1));
-			ProjectFolders.Add(new FolderInfo(string.Empty, 1));
+			AddNewSampleFolder();
+			AddNewProjectFolder();
 			OutputText = "Hello, World!";
 
 			/*
@@ -239,11 +238,11 @@ namespace Studio_One_File_Finder
 
 		public void AddNewSampleFolder()
 		{
-			SampleFolders.Add(new FolderInfo(string.Empty, SampleFolders.Count + 1));
+			SampleFolders.Add(new FolderInfo(string.Empty, SampleFolders.Count + 1, Alert));
 		}
 		public void AddNewProjectFolder()
 		{
-			ProjectFolders.Add(new FolderInfo(string.Empty, ProjectFolders.Count + 1));
+			ProjectFolders.Add(new SongFolderInfo(string.Empty, ProjectFolders.Count + 1, Alert));
 		}
 
 		public void RemoveFolder(ObservableCollection<FolderInfo> folders, FolderInfo folder)
@@ -338,8 +337,11 @@ namespace Studio_One_File_Finder
 			}
 		}
 
-		public FolderInfo(string path, int indexInCollection)
+		protected FilePreferencesViewModel.MyEventAction _alert;
+
+		public FolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert)
 		{
+			_alert = alert;
 			FolderPath = path;
 			IndexInCollectionPlusOne = indexInCollection;
 			PathIsValid = false;
@@ -357,12 +359,56 @@ namespace Studio_One_File_Finder
 				}
 			});
 		}
-
-		public void VerifyPath()
+		protected bool FolderPathIsValid()
 		{
-			PathIsValid = System.IO.Directory.Exists(FolderPath);
+			return System.IO.Directory.Exists(FolderPath);
+		}
+		public virtual async void VerifyPath()
+		{
+			PathIsValid = await Task.Run(FolderPathIsValid);// FolderPathIsValid();// await new Task<bool>(FolderPathIsValid);
 		}
 	}
+	public class SongFolderInfo : FolderInfo
+	{
+		private Queue<DirectoryInfo> _directoriesToSearch;
+		public SongFolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert) : base(path, indexInCollection, alert) { }
+		public override async void VerifyPath()
+		{
+			PathIsValid = await FolderPathIsValidAsync();
+		}
+		private async Task<bool> FolderPathIsValidAsync()
+		{
+			if (!base.FolderPathIsValid()) return false;
+			_directoriesToSearch = new Queue<DirectoryInfo>();
+			try
+			{
+				return SearchMyDirOfficer(new DirectoryInfo(FolderPath));
+			}
+			catch (Exception ex)
+			{
+				await _alert.Invoke("Problem with directory", ex.Message, "okay bruv");
+				return false;
+			}
+		}
+		/// <summary>
+		/// Perform a breadth-first search of directory to find any valid .song file
+		/// </summary>
+		/// <param name="currentDir"></param>
+		/// <param name="depth"></param>
+		/// <returns></returns>
+		bool SearchMyDirOfficer(DirectoryInfo currentDir)
+		{
+			var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
+			if (songFiles.Count > 0) return true;
+            foreach (var item in currentDir.EnumerateDirectories())
+			{
+				_directoriesToSearch.Enqueue(item);
+			}
+			if (_directoriesToSearch.Count == 0) return false;
+			return SearchMyDirOfficer(_directoriesToSearch.Dequeue());
+		}
+	}
+
 	public struct ExtraSettings
 	{
 		public bool OverwriteValidPaths;
