@@ -46,7 +46,8 @@ namespace Studio_One_File_Finder
 		public delegate Task<bool> CallbackPrompt(string title, string message, string yes, string no);
 		CallbackAlert _currentHandler; // TODO move these into the constructor and stop passing them in through delete, restore, etc.
 		Callback _currentOutput;
-		FilePreferencesViewModel.ClearConsole _clearConsole;// TODO move ClearConsole out of fpvm into here
+		FilePreferencesViewModel.BasicDelegate _clearConsole;// TODO move ClearConsole out of fpvm into here
+		FilePreferencesViewModel.DoubleCallback _setProgressBar;
 
 		private string _currentSongFolderName;
 
@@ -59,9 +60,10 @@ namespace Studio_One_File_Finder
 		private ExtraSettings _userConfig;
 		private List<string> _filesRestored;
 		private List<string> _backupsDeleted;
-		public FileUpdater(FilePreferencesViewModel.ClearConsole clearConsole)
+		public FileUpdater(FilePreferencesViewModel.BasicDelegate clearConsole, FilePreferencesViewModel.DoubleCallback setProgress)
 		{
 			_clearConsole = clearConsole;
+			_setProgressBar = setProgress;
 			InitClass(true);
 		}
 		private void InitClass(bool resetCachedPaths=false)
@@ -127,10 +129,12 @@ namespace Studio_One_File_Finder
 					continue;
 				}
 			}
+			_setProgressBar(0.0);
 			foreach (string songFolderPath in songFolders)
 			{
 				modifier(songFolderPath);
 				count++;
+				_setProgressBar((double)count / ((count < songFolders.Count) ? count : (double)songFolders.Count));
 				if (count > 20)
 				{
 					break;

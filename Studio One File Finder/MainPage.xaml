@@ -34,7 +34,6 @@
                 SemanticProperties.HeadingLevel="Level2"
                 SemanticProperties.Description="Welcome to dot net Multi platform App U I" />-->
         </StackLayout>
-        
         <!-- User Options -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -147,6 +146,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="100" />
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <VerticalStackLayout Grid.Row="0">
@@ -236,7 +236,24 @@
                         </Grid>
                     </Grid>-->
                 </VerticalStackLayout>
-                <ScrollView Grid.Row="3" x:Name="OutputScroller">
+                <ProgressBar Grid.Row="3"
+                            Grid.Column="1"
+                            Progress="{Binding ProgressBarValue}"/>
+                <!--<HorizontalStackLayout Grid.Row="3">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0"
+                            Text="Current Song:"></Label>
+                        <ProgressBar
+                            Grid.Column="1"
+                            HorizontalOptions="Fill"
+                            Progress="{Binding ProgressBarValue}"/>
+                    </Grid>
+                </HorizontalStackLayout>-->
+                <ScrollView Grid.Row="4" x:Name="OutputScroller">
                     <Label
                     x:Name="OutputScrollerLabel"
                     Text="{Binding OutputText}"

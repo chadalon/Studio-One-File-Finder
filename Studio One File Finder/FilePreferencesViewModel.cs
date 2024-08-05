@@ -21,7 +21,8 @@ namespace Studio_One_File_Finder
 		public event MyPromptEventAction PromptAlert;
 		public delegate void ControlMusic(bool play);
 		public event MyEventAction Play;
-		public delegate void ClearConsole();
+		public delegate void BasicDelegate();
+		public delegate void DoubleCallback(double val);
 
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
 		{
@@ -131,6 +132,16 @@ namespace Studio_One_File_Finder
 			}
 		}
 
+		private double _progressBarValue;
+		public double ProgressBarValue
+		{
+			get => _progressBarValue;
+			set
+			{
+				SetIfDiff(ref _progressBarValue, value);
+			}
+		}
+
 		private FileUpdater _fileUpdater;
 
 		public FilePreferencesViewModel()
@@ -140,11 +151,17 @@ namespace Studio_One_File_Finder
 		{
 			Alert += alertAction;
 			PromptAlert += promptAlertAction;
-			ClearConsole clearConsole = () =>
+			OutputText = "";
+			ProgressBarValue = 0.0;
+			BasicDelegate clearConsole = () =>
 			{
 				OutputText = "";
 			};
-			_fileUpdater = new(clearConsole);
+			DoubleCallback setProgress = (double val) =>
+			{
+				ProgressBarValue = val;
+			};
+			_fileUpdater = new(clearConsole, setProgress);
 
 			ReplaceSampleOne = true;
 			ReplaceImpact = true;
@@ -160,7 +177,6 @@ namespace Studio_One_File_Finder
 			ProjectFolders.CollectionChanged += new NotifyCollectionChangedEventHandler(FoldersCollectionChanged);
 			AddNewSampleFolder();
 			AddNewProjectFolder();
-			OutputText = "Hello, World!";
 
 			/*
 			ProjectFolders.ToObservableChangeSet().Subscribe(_ =>
