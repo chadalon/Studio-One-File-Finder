@@ -135,6 +135,11 @@ namespace Studio_One_File_Finder
 
 		public FilePreferencesViewModel()
 		{
+		}
+		public void InitializeFilePreferences(MyEventAction alertAction, MyPromptEventAction promptAlertAction)
+		{
+			Alert += alertAction;
+			PromptAlert += promptAlertAction;
 			ClearConsole clearConsole = () =>
 			{
 				OutputText = "";
@@ -271,20 +276,39 @@ namespace Studio_One_File_Finder
 			{
 				foreach (var ob in e.NewItems)
 				{
-					(ob as FolderInfo).PropertyChanged += (sender, e) =>
+					var folder = (FolderInfo)ob;
+					var folderVerifDisposable = folder.WhenAnyValue(x => x.FolderPath).Subscribe(folderPath =>
 					{
-						(sender as FolderInfo).VerifyPath();
+						folder.VerifyPath();
+					});
+					folder.FolderDisposables.Add(folderVerifDisposable);
+					var folderValidDisposable = folder.WhenAnyValue(x => x.PathIsValid).Subscribe(pathIsValid =>
+					{
 						SetCanSubmit();
-						SetCanRestore();
-					};
+						if (folder is SongFolderInfo)
+						{
+							SetCanRestore();
+						}
+					});
+					folder.FolderDisposables.Add(folderValidDisposable);
 				}
 			}
 			if (e.OldItems != null)
 			{
-
+				foreach (var ob in e.OldItems)
+				{
+					var folder = (FolderInfo)ob;
+					foreach (var disposable in folder.FolderDisposables)
+					{
+						disposable.Dispose();
+					}
+					SetCanSubmit();
+					if (folder is SongFolderInfo)
+					{
+						SetCanRestore();
+					}
+				}
 			}
-			SetCanSubmit();
-			SetCanRestore();
 		}
 		/// <summary>
 		/// If we have one valid folder for samlples and one valid for projects, we can submit
@@ -300,7 +324,7 @@ namespace Studio_One_File_Finder
 	}
 	public class FolderInfo : INotifyPropertyChanged
 	{
-		// TODO set if changed func
+		public List<IDisposable> FolderDisposables = new();
 		private bool _pathIsValid;
 		public bool PathIsValid
 		{

@@ -308,7 +308,7 @@ namespace Studio_One_File_Finder
 					File.Move(sourceFilePath, newBackupPath);
 				}
 
-				File.Move(tempFilePath, sourceFilePath);
+				File.Move(tempFilePath, sourceFilePath, true);
 				_projectsUpdated++;
 			}
 		}
