@@ -427,7 +427,7 @@ namespace Studio_One_File_Finder
 			}
 		}
 		/// <summary>
-		/// Perform a breadth-first search of directory to find any valid .song file
+		/// Perform a breadth-first search of directory to find any valid .song file (or song backup)
 		/// </summary>
 		/// <param name="currentDir"></param>
 		/// <param name="depth"></param>
@@ -435,7 +435,8 @@ namespace Studio_One_File_Finder
 		bool SearchMyDirOfficer(DirectoryInfo currentDir)
 		{
 			var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
-			if (songFiles.Count > 0) return true;
+			var bupFiles = Directory.GetFiles(currentDir.FullName, $"*{FileUpdater.BACKUP_FILE_EXTENSION}").ToList();
+			if (songFiles.Count > 0 || bupFiles.Count > 0) return true;
             foreach (var item in currentDir.EnumerateDirectories())
 			{
 				_directoriesToSearch.Enqueue(item);

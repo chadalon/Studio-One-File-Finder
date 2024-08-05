@@ -23,7 +23,7 @@ namespace Studio_One_File_Finder
 	{
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		const string MEDIA_POOL = "Song/mediapool.xml";
-		const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
+		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		const string FX_EXTENSTION = ".fxpreset";
 		private static string FILE_TYPE_NODES(FileType fType)
 		{
@@ -62,9 +62,9 @@ namespace Studio_One_File_Finder
 		public FileUpdater(FilePreferencesViewModel.ClearConsole clearConsole)
 		{
 			_clearConsole = clearConsole;
-			InitClass(true);
+			InitClass();
 		}
-		private void InitClass(bool resetCachedPaths=false)
+		private void InitClass()
 		{
 			_refUpdateCount = 0;
 			_fileTypeCounts = new();
@@ -74,7 +74,7 @@ namespace Studio_One_File_Finder
 			{
 				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
 			};
-			if (resetCachedPaths) _discoveredFiles = new();
+			_discoveredFiles = new();
 			InitBackupVars();
 		}
 		private void InitBackupVars()
@@ -98,7 +98,7 @@ namespace Studio_One_File_Finder
 				}
 			}
 		}
-		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier)
+		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier, bool includeBackups=false)
 		{
 			count = 0;
 			HashSet<string> songFolders = new();
@@ -115,11 +115,28 @@ namespace Studio_One_File_Finder
 					FindSongFolders(item);
 				}
 			}
+			void FindBackupFolders(DirectoryInfo currentDir)
+			{
+				var songFiles = Directory.GetFiles(currentDir.FullName, $"*{BACKUP_FILE_EXTENSION}").ToList();
+				if (songFiles.Count > 0 && currentDir.Name != "History") // if we excluding autosaves
+				{
+					songFolders.Add(currentDir.FullName);
+				}
+				foreach (var item in currentDir.EnumerateDirectories())
+				{
+					FindSongFolders(item);
+				}
+
+			}
 
 			foreach (string projectsDir in projectDirectories)
 			{
 				int countBefore = songFolders.Count;
 				FindSongFolders(new DirectoryInfo(projectsDir));
+				if (includeBackups)
+				{
+					FindBackupFolders(new DirectoryInfo(projectsDir));
+				}
 
 				if (songFolders.Count - countBefore == 0)
 				{
@@ -206,7 +223,6 @@ namespace Studio_One_File_Finder
 		/// <param name="fType"></param>
 		private void WriteEntryIfNeeded(ZipArchive destination, ZipArchiveEntry entry, FileType fType)
 		{
-			var destinationEntry = destination.CreateEntry(entry.FullName);
 			string alterFileResult;
 			uint countBeforeCurEntry = _refUpdateCount;
 			using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
@@ -216,13 +232,14 @@ namespace Studio_One_File_Finder
 			// keep our hands off the entry if we can
 			if (_refUpdateCount - countBeforeCurEntry > 0)
 			{
-				if (_fileTypeCounts.ContainsKey(fType))
-				{
-					_fileTypeCounts[fType] += _refUpdateCount - countBeforeCurEntry;
-				}
+				var destinationEntry = destination.CreateEntry(entry.FullName);
 				using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
 				{
 					writer.Write(alterFileResult);
+				}
+				if (_fileTypeCounts.ContainsKey(fType))
+				{
+					_fileTypeCounts[fType] += _refUpdateCount - countBeforeCurEntry;
 				}
 			}
 			else
@@ -586,7 +603,7 @@ namespace Studio_One_File_Finder
 			_currentOutput = output;
 			try
 			{
-				DoStuffWithSongsInThisDir(projectDirectories, RestoreFileIfExists);
+				DoStuffWithSongsInThisDir(projectDirectories, RestoreFileIfExists, true);
 			}
 			catch (Exception ex)
 			{
