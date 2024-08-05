@@ -35,8 +35,7 @@ namespace Studio_One_File_Finder
 		{
 			FilePreferences = filePreferencesViewModel;
 			BindingContext = filePreferencesViewModel;
-			filePreferencesViewModel.Alert += DisplayAlert;
-			filePreferencesViewModel.PromptAlert += DisplayAlert;
+			filePreferencesViewModel.InitializeFilePreferences(DisplayAlert, DisplayAlert);
 			InitializeComponent();
 
 			var thing = FilePreferences.WhenAnyValue(x => x.OutputText).Subscribe(_ =>

@@ -16,7 +16,8 @@ namespace Studio_One_File_Finder
 	enum FileType
 	{
 		MediaPool,
-		SampleOne
+		SampleOne,
+		Impact
 	}
 	class FileUpdater
 	{
@@ -30,6 +31,7 @@ namespace Studio_One_File_Finder
 			{
 				case FileType.MediaPool: return "//AudioClip/Url";
 				case FileType.SampleOne: return "//Zone/Attributes";
+				case FileType.Impact: return "//List/Url";
 				default: return null;
 			}
 		}
@@ -48,8 +50,8 @@ namespace Studio_One_File_Finder
 
 		private string _currentSongFolderName;
 
+		Dictionary<FileType, uint> _fileTypeCounts;
 		uint _refUpdateCount;
-		uint _sampleOneUpdateCount;
 		uint _projectsUpdated;
 		int count; // TODO rename
 		private Dictionary<string, string?> _discoveredFiles;
@@ -65,7 +67,7 @@ namespace Studio_One_File_Finder
 		private void InitClass(bool resetCachedPaths=false)
 		{
 			_refUpdateCount = 0;
-			_sampleOneUpdateCount = 0;
+			_fileTypeCounts = new();
 			_projectsUpdated = 0;
 			_sampleFolders = new();
 			_nodesToFind = new()
@@ -129,7 +131,7 @@ namespace Studio_One_File_Finder
 			{
 				modifier(songFolderPath);
 				count++;
-				if (count > 4)
+				if (count > 20)
 				{
 					break;
 				}
@@ -143,11 +145,13 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CurrentlyRunning = true;
+			_clearConsole();
 
 			InitClass();
 			foreach (var fType in typesToUpdate)
 			{
 				_nodesToFind[fType] = FILE_TYPE_NODES(fType);
+				_fileTypeCounts[fType] = 0;
 			}
 			_userConfig = config;
 
@@ -171,16 +175,15 @@ namespace Studio_One_File_Finder
 
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
-			if (_nodesToFind.ContainsKey(FileType.SampleOne))
+			foreach (var fTypeCount in _fileTypeCounts)
 			{
-				finalString += $"\n{_sampleOneUpdateCount} of those were SampleOne updates";
+				finalString += $"\n{fTypeCount.Value} of those were {fTypeCount.Key} updates";
 			}
 			handler(finalString);
 			CurrentlyRunning = false;
 		}
 		private void UpdateSong(string songFolderPath)
 		{
-			// TODO just selecting first legit song file. Do ppl ever store multiple in their folders??
 			var songFiles = Directory.GetFiles(songFolderPath, "*.song").Where(x => !Path.GetFileName(x).StartsWith("._")).ToList();
 			//throw new Exception("need to exclude ._*.song files...");
 			if (songFiles.Count == 0)
@@ -213,9 +216,9 @@ namespace Studio_One_File_Finder
 			// keep our hands off the entry if we can
 			if (_refUpdateCount - countBeforeCurEntry > 0)
 			{
-				if (fType == FileType.SampleOne)
+				if (_fileTypeCounts.ContainsKey(fType))
 				{
-					_sampleOneUpdateCount += _refUpdateCount - countBeforeCurEntry;
+					_fileTypeCounts[fType] += _refUpdateCount - countBeforeCurEntry;
 				}
 				using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
 				{
@@ -253,6 +256,10 @@ namespace Studio_One_File_Finder
 			uint countBeforeCurFile = _refUpdateCount;
 			// TODO test inputting both / and \\
 			string tempFilePath = sourceFilePath + "temp"; // will this work lmao
+			if (File.Exists(tempFilePath))
+			{
+				File.Delete(tempFilePath);
+			}
 			using (FileStream sourceStream = new FileStream(sourceFilePath, FileMode.Open))
 			using (FileStream destinationStream = new FileStream(tempFilePath, FileMode.Create))
 			using (ZipArchive source = new ZipArchive(sourceStream, ZipArchiveMode.Read))
@@ -265,10 +272,22 @@ namespace Studio_One_File_Finder
 					{
 						WriteEntryIfNeeded(destination, entry, FileType.MediaPool);
 					}
-					else if (_nodesToFind.ContainsKey(FileType.SampleOne) && entry.FullName.Contains("SampleOne") && entry.FullName.Contains(FX_EXTENSTION))
+					else if (entry.FullName.StartsWith("Presets/Synths/") && entry.Name.Contains(FX_EXTENSTION))
 					{
-						_currentOutput("Checking SampleOne files...");
-						WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
+						if (_nodesToFind.ContainsKey(FileType.SampleOne) && entry.Name.Contains("SampleOne"))
+						{
+							_currentOutput("Checking SampleOne files...");
+							WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
+						}
+						else if (_nodesToFind.ContainsKey(FileType.Impact) && entry.Name.Contains("Impact"))
+						{
+							_currentOutput("Checking Impact files...");
+							WriteEntryIfNeeded(destination, entry, FileType.Impact);
+						}
+						else
+						{
+							CopyEntry(destination, entry);
+						}
 					}
 					else
 					{
@@ -289,7 +308,7 @@ namespace Studio_One_File_Finder
 					File.Move(sourceFilePath, newBackupPath);
 				}
 
-				File.Move(tempFilePath, sourceFilePath);
+				File.Move(tempFilePath, sourceFilePath, true);
 				_projectsUpdated++;
 			}
 		}
