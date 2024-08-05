@@ -182,10 +182,17 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0"
+                                    Text="Restore Files"
+                                    IsEnabled="{Binding CanRestore}"
+                                    Clicked="OnRestoreClicked">
+                                    <ToolTipProperties.Text>Restore all files this app has modified to their original states</ToolTipProperties.Text>
+                                </Button>
                                 <Button
-                                    Grid.Column="0"
+                                    Grid.Column="1"
                                     Text="Delete Backup Files"
                                     IsEnabled="{Binding CanRestore}"
                                     Clicked="OnDeleteBackupsClicked">
@@ -203,6 +210,7 @@
                         BackgroundColor="{AppThemeBinding Light={StaticResource Golden}, Dark={StaticResource GoldenDark}}"
                     IsEnabled="{Binding CanSubmit}"
                     Clicked="OnSubmitClicked"/>
+                    <!--
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -226,13 +234,7 @@
                             </Grid.ColumnDefinitions>
                             <Rectangle Grid.Column="1" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
                         </Grid>
-                    </Grid>
-                    <Button
-                        Text="Restore Files"
-                        IsEnabled="{Binding CanRestore}"
-                        Clicked="OnRestoreClicked">
-                        <ToolTipProperties.Text>Restore all files this app has modified to their original states</ToolTipProperties.Text>
-                    </Button>
+                    </Grid>-->
                 </VerticalStackLayout>
                 <ScrollView Grid.Row="3" x:Name="OutputScroller">
                     <Label

@@ -559,6 +559,7 @@ namespace Studio_One_File_Finder
 					File.Delete(fileName);
 				}
 				File.Move(backup, fileName);
+				_currentOutput($"Restored {fileName}");
 				_filesRestored.Add(fileName);
 			}
 		}
@@ -601,6 +602,7 @@ namespace Studio_One_File_Finder
 			foreach (var backup in backupFiles)
 			{
 				File.Delete(backup);
+				_currentOutput($"Deleted {backup}");
 				_backupsDeleted.Add(backup);
 			}
 		}
