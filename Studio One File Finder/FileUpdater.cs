@@ -145,6 +145,7 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CurrentlyRunning = true;
+			_clearConsole();
 
 			InitClass();
 			foreach (var fType in typesToUpdate)
@@ -183,7 +184,6 @@ namespace Studio_One_File_Finder
 		}
 		private void UpdateSong(string songFolderPath)
 		{
-			// TODO just selecting first legit song file. Do ppl ever store multiple in their folders??
 			var songFiles = Directory.GetFiles(songFolderPath, "*.song").Where(x => !Path.GetFileName(x).StartsWith("._")).ToList();
 			//throw new Exception("need to exclude ._*.song files...");
 			if (songFiles.Count == 0)
@@ -279,7 +279,7 @@ namespace Studio_One_File_Finder
 							_currentOutput("Checking SampleOne files...");
 							WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
 						}
-						else if (/*_nodesToFind.ContainsKey(FileType.Impact) && */entry.Name.Contains("Impact"))
+						else if (_nodesToFind.ContainsKey(FileType.Impact) && entry.Name.Contains("Impact"))
 						{
 							_currentOutput("Checking Impact files...");
 							WriteEntryIfNeeded(destination, entry, FileType.Impact);

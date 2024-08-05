@@ -155,6 +155,11 @@
                               IsChecked="{Binding ReplaceSampleOne, Mode=TwoWay}" />
                         <Label Text="Update SampleOne Refs" VerticalTextAlignment="Center"/>
                     </HorizontalStackLayout>
+                    <HorizontalStackLayout>
+                        <CheckBox x:Name="ImpactCheckBox"
+                              IsChecked="{Binding ReplaceImpact, Mode=TwoWay}" />
+                        <Label Text="Update Impact Refs" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
                 <mct:Expander Grid.Row="1" Margin="0,20">
                     <mct:Expander.Header>
