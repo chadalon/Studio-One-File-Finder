@@ -150,6 +150,12 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <VerticalStackLayout Grid.Row="0">
+                    <Label Text="Samples to Update:" Style="{StaticResource SubHeadline}" />
+                    <HorizontalStackLayout ToolTipProperties.Text="These are regular samples in Studio One, not stored by plugins">
+                        <CheckBox x:Name="MediaPoolCheckBox"
+                              IsChecked="{Binding ReplaceMediaPool, Mode=TwoWay}" />
+                        <Label Text="Update Media Pool Refs" VerticalTextAlignment="Center"/>
+                    </HorizontalStackLayout>
                     <HorizontalStackLayout>
                         <CheckBox x:Name="SampleOneCheckBox"
                               IsChecked="{Binding ReplaceSampleOne, Mode=TwoWay}" />
@@ -163,7 +169,7 @@
                 </VerticalStackLayout>
                 <mct:Expander Grid.Row="1" Margin="0,20">
                     <mct:Expander.Header>
-                        <Label Text="Advanced" Margin="0,10"></Label>
+                        <Label Text="Advanced Settings" Margin="0,10"></Label>
                     </mct:Expander.Header>
                     <mct:Expander.Content>
                         <VerticalStackLayout Spacing="15">

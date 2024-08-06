@@ -70,10 +70,7 @@ namespace Studio_One_File_Finder
 			_fileTypeCounts = new();
 			_projectsUpdated = 0;
 			_sampleFolders = new();
-			_nodesToFind = new()
-			{
-				{ FileType.MediaPool, FILE_TYPE_NODES(FileType.MediaPool) }
-			};
+			_nodesToFind = new();
 			_discoveredFiles = new();
 			InitBackupVars();
 		}

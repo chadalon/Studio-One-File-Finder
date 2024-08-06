@@ -53,6 +53,15 @@ namespace Studio_One_File_Finder
 				SetIfDiff(ref _sampleFolders, value);
 			}
 		}
+		private bool _replaceMediaPool;
+		public bool ReplaceMediaPool
+		{
+			get => _replaceMediaPool;
+			set
+			{
+				SetIfDiff(ref _replaceMediaPool, value);
+			}
+		}
 		private bool _replaceSampleOne;
 		public bool ReplaceSampleOne
 		{
@@ -146,6 +155,7 @@ namespace Studio_One_File_Finder
 			};
 			_fileUpdater = new(clearConsole);
 
+			ReplaceMediaPool = true;
 			ReplaceSampleOne = true;
 			ReplaceImpact = true;
 			OverWriteValidPaths = false;
@@ -161,6 +171,7 @@ namespace Studio_One_File_Finder
 			AddNewSampleFolder();
 			AddNewProjectFolder();
 			OutputText = "Hello, World!";
+			this.WhenAnyValue(x => x.ReplaceMediaPool, x => x.ReplaceSampleOne, x => x.ReplaceImpact).Subscribe(_ => SetCanSubmit());
 
 			/*
 			ProjectFolders.ToObservableChangeSet().Subscribe(_ =>
@@ -187,6 +198,8 @@ namespace Studio_One_File_Finder
 			List<string> validSampleDirs = SampleFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
 			List<string> validProjectDirs = ProjectFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
 			List<FileType> extraPlugins = new List<FileType>();
+			if (ReplaceMediaPool)
+				extraPlugins.Add(FileType.MediaPool);
 			if (ReplaceSampleOne) // TODO there's a better way to do this with observables, hashtables, etc
 				extraPlugins.Add(FileType.SampleOne);
 			if (ReplaceImpact)
@@ -315,7 +328,7 @@ namespace Studio_One_File_Finder
 		/// </summary>
 		private void SetCanSubmit()
 		{
-			CanSubmit = SampleFolders.Any(x => x.PathIsValid) && ProjectFolders.Any(x => x.PathIsValid);
+			CanSubmit = SampleFolders.Any(x => x.PathIsValid) && ProjectFolders.Any(x => x.PathIsValid) && (ReplaceMediaPool || ReplaceSampleOne || ReplaceImpact);
 		}
 		private void SetCanRestore()
 		{
