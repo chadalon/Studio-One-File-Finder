@@ -37,33 +37,51 @@ namespace Studio_One_File_Finder
 		}
 		Dictionary<FileType, string> _nodesToFind;
 
-		public bool CurrentlyRunning = false;
+		private bool _currentlyRunning;
+		public bool CurrentlyRunning
+		{
+			get => _currentlyRunning;
+			set
+			{
+				if (_currentlyRunning == value) return;
+				_runningCallback?.Invoke(value);
+				_currentlyRunning = value;
+			}
+		}
+		
 
 		private bool _updateSampleOneRefs;
 
 		public delegate void Callback(string message);
-		public delegate void CallbackAlert(string message, string title="Alert");
+		public delegate Task CallbackAlert(string message, string title="Alert");
 		public delegate Task<bool> CallbackPrompt(string title, string message, string yes, string no);
 		CallbackAlert _currentHandler; // TODO move these into the constructor and stop passing them in through delete, restore, etc.
 		Callback _currentOutput;
-		FilePreferencesViewModel.BasicDelegate _clearConsole;// TODO move ClearConsole out of fpvm into here
-		FilePreferencesViewModel.DoubleCallback _setProgressBar;
+		BasicDelegate _clearConsole;// TODO move ClearConsole out of fpvm into here
+		DoubleCallback _setProgressBar;
+		StringCallback _setCurSong;
+		BoolCallback _runningCallback;
 
 		private string _currentSongFolderName;
 
 		Dictionary<FileType, uint> _fileTypeCounts;
 		uint _refUpdateCount;
 		uint _projectsUpdated;
+		private List<string> _songsUpdated;
+		private List<string> _songsSkipped;
 		int count; // TODO rename
 		private Dictionary<string, string?> _discoveredFiles;
 		private List<string> _sampleFolders;
 		private ExtraSettings _userConfig;
 		private List<string> _filesRestored;
 		private List<string> _backupsDeleted;
-		public FileUpdater(FilePreferencesViewModel.BasicDelegate clearConsole, FilePreferencesViewModel.DoubleCallback setProgress)
+		public FileUpdater(BasicDelegate clearConsole, DoubleCallback setProgress, StringCallback setCurSong, BoolCallback runningCallback)
 		{
+			CurrentlyRunning = false;
 			_clearConsole = clearConsole;
 			_setProgressBar = setProgress;
+			_setCurSong = setCurSong;
+			_runningCallback = runningCallback;
 			InitClass();
 		}
 		private void InitClass()
@@ -71,6 +89,8 @@ namespace Studio_One_File_Finder
 			_refUpdateCount = 0;
 			_fileTypeCounts = new();
 			_projectsUpdated = 0;
+			_songsUpdated = new();
+			_songsSkipped = new();
 			_sampleFolders = new();
 			_nodesToFind = new();
 			_discoveredFiles = new();
@@ -80,6 +100,13 @@ namespace Studio_One_File_Finder
 		{
 			_filesRestored = new();
 			_backupsDeleted = new();
+		}
+		private void StartRunning()
+		{
+			CurrentlyRunning = true;
+			_setProgressBar(0.0);
+			_setCurSong("");
+			_clearConsole();
 		}
 		private void ValidatePaths(List<string> dirs)
 		{
@@ -143,27 +170,26 @@ namespace Studio_One_File_Finder
 					continue;
 				}
 			}
-			_setProgressBar(0.0);
 			foreach (string songFolderPath in songFolders)
 			{
+				_setCurSong(GetFileName(songFolderPath, Path.DirectorySeparatorChar));
 				modifier(songFolderPath);
 				count++;
-				_setProgressBar((double)count / ((count < songFolders.Count) ? count : (double)songFolders.Count));
+				_setProgressBar((double)count / ((count < songFolders.Count) ? 20 : (double)songFolders.Count));
 				if (count > 20)
 				{
 					break;
 				}
 			}
 		}
-		public void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
+		public async void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
 		{
 			if (CurrentlyRunning)
 			{
-				handler("The file updater is already running!", "Holup");
+				await handler("The file updater is already running!", "Holup");
 				return;
 			}
-			CurrentlyRunning = true;
-			_clearConsole();
+			StartRunning();
 
 			InitClass();
 			foreach (var fType in typesToUpdate)
@@ -197,7 +223,8 @@ namespace Studio_One_File_Finder
 			{
 				finalString += $"\n{fTypeCount.Value} of those were {fTypeCount.Key} updates";
 			}
-			handler(finalString);
+			finalString += $"\n{_songsSkipped.Count} songs were not updated.";
+			await handler(finalString, "Results");
 			CurrentlyRunning = false;
 		}
 		private void UpdateSong(string songFolderPath)
@@ -317,6 +344,7 @@ namespace Studio_One_File_Finder
 			{
 				// Don't modify files
 				File.Delete(tempFilePath);
+				_songsSkipped.Add(sourceFilePath);
 			}
 			else
 			{
@@ -328,6 +356,7 @@ namespace Studio_One_File_Finder
 
 				File.Move(tempFilePath, sourceFilePath, true);
 				_projectsUpdated++;
+				_songsUpdated.Add(sourceFilePath);
 			}
 		}
 		/// <summary>
@@ -585,7 +614,7 @@ namespace Studio_One_File_Finder
 		{
 			if (CurrentlyRunning)
 			{
-				handler("The file updater is already running!", "Holup");
+				await handler("The file updater is already running!", "Holup");
 				return;
 			}
 			ValidatePaths(projectDirectories);
@@ -596,9 +625,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			CurrentlyRunning = true;
-
-			_clearConsole();
+			StartRunning();
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -608,10 +635,10 @@ namespace Studio_One_File_Finder
 			}
 			catch (Exception ex)
 			{
-				_currentHandler($"A problem occured while attempting to restore your backups:\n{ex.Message}", "Fail");
+				await _currentHandler($"A problem occured while attempting to restore your backups:\n{ex.Message}", "Fail");
 			}
 
-			handler($"{_filesRestored.Count} files have been restored.", "Restore Complete");
+			await handler($"{_filesRestored.Count} files have been restored.", "Restore Complete");
 			CurrentlyRunning = false;
 		}
 		private void DeleteFileIfExists(string songFolderPath)
@@ -628,7 +655,7 @@ namespace Studio_One_File_Finder
 		{
 			if (CurrentlyRunning)
 			{
-				handler("The file updater is already running!", "Holup");
+				await handler("The file updater is already running!", "Holup");
 				return;
 			}
 			ValidatePaths(projectDirectories);
@@ -640,9 +667,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			CurrentlyRunning = true;
-
-			_clearConsole();
+			StartRunning();
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -652,10 +677,10 @@ namespace Studio_One_File_Finder
 			}
 			catch (Exception ex)
 			{
-				_currentHandler($"A problem occured while attempting to delete your backups:\n{ex.Message}", "Fail");
+				await _currentHandler($"A problem occured while attempting to delete your backups:\n{ex.Message}", "Fail");
 			}
 
-			handler($"{_backupsDeleted.Count} files have been deleted.", "Deletion Complete");
+			await handler($"{_backupsDeleted.Count} files have been deleted.", "Deletion Complete");
 			CurrentlyRunning = false;
 		}
 	}

@@ -13,6 +13,10 @@ using System.Collections.Specialized;
 
 namespace Studio_One_File_Finder
 {
+	public delegate void BasicDelegate();
+	public delegate void DoubleCallback(double val);
+	public delegate void StringCallback(string val);
+	public delegate void BoolCallback(bool val);
 	public class FilePreferencesViewModel : INotifyPropertyChanged
 	{
 		public delegate Task MyEventAction(string title, string message, string buttonContent);
@@ -21,8 +25,6 @@ namespace Studio_One_File_Finder
 		public event MyPromptEventAction PromptAlert;
 		public delegate void ControlMusic(bool play);
 		public event MyEventAction Play;
-		public delegate void BasicDelegate();
-		public delegate void DoubleCallback(double val);
 
 		private void SetIfDiff<T>(ref T curVal, T newVal, [CallerMemberName] string propertyName = null)
 		{
@@ -131,6 +133,26 @@ namespace Studio_One_File_Finder
 		}
 		public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
 
+		private string _currentSong;
+		public string CurrentSong
+		{
+			get => _currentSong;
+			set
+			{
+				SetIfDiff(ref _currentSong, value);
+			}
+		}
+
+		private bool _currentlyRunning;
+		public bool CurrentlyRunning
+		{
+			get => _currentlyRunning;
+			set
+			{
+				SetIfDiff(ref _currentlyRunning, value);
+			}
+		}
+
 		private string _outputText;
 		public string OutputText
 		{
@@ -170,7 +192,15 @@ namespace Studio_One_File_Finder
 			{
 				ProgressBarValue = val;
 			};
-			_fileUpdater = new(clearConsole, setProgress);
+			StringCallback setCurSong = (string val) =>
+			{
+				CurrentSong = val;
+			};
+			BoolCallback setCurrentlyRunning = (bool val) =>
+			{
+				CurrentlyRunning = val;
+			};
+			_fileUpdater = new(clearConsole, setProgress, setCurSong, setCurrentlyRunning);
 
 			ReplaceMediaPool = true;
 			ReplaceSampleOne = true;
@@ -460,7 +490,6 @@ namespace Studio_One_File_Finder
 		/// Perform a breadth-first search of directory to find any valid .song file (or song backup)
 		/// </summary>
 		/// <param name="currentDir"></param>
-		/// <param name="depth"></param>
 		/// <returns></returns>
 		bool SearchMyDirOfficer(DirectoryInfo currentDir)
 		{

@@ -146,7 +146,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="100" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <VerticalStackLayout Grid.Row="0">
@@ -242,9 +242,33 @@
                         </Grid>
                     </Grid>-->
                 </VerticalStackLayout>
-                <ProgressBar Grid.Row="3"
-                            Grid.Column="1"
+                <Grid Grid.Row="3"
+                      IsVisible="{Binding CurrentlyRunning}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Label
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Padding="0,10"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Current Song: "></Span>
+                                <Span Text="{Binding CurrentSong}"></Span>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <ProgressBar Margin="0,0,0,10" Grid.Row="1"
+                        Grid.Column="0"
                             Progress="{Binding ProgressBarValue}"/>
+
+                </Grid>
                 <!--<HorizontalStackLayout Grid.Row="3">
                     <Grid>
                         <Grid.ColumnDefinitions>
