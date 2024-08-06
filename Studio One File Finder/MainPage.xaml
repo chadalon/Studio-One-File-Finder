@@ -34,7 +34,6 @@
                 SemanticProperties.HeadingLevel="Level2"
                 SemanticProperties.Description="Welcome to dot net Multi platform App U I" />-->
         </StackLayout>
-        
         <!-- User Options -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -142,8 +141,9 @@
             </Grid>
 
             <!-- Finalize and Start -->
-            <Grid Grid.Column="1">
+            <Grid Grid.Column="1" Padding="20">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -242,7 +242,48 @@
                         </Grid>
                     </Grid>-->
                 </VerticalStackLayout>
-                <ScrollView Grid.Row="3" x:Name="OutputScroller">
+                <Grid Grid.Row="3"
+                      IsVisible="{Binding CurrentlyRunning}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Label
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Padding="0,10"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Current Song: "></Span>
+                                <Span Text="{Binding CurrentSong}"></Span>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <ProgressBar Margin="0,0,0,10" Grid.Row="1"
+                        Grid.Column="0"
+                            Progress="{Binding ProgressBarValue}"/>
+
+                </Grid>
+                <!--<HorizontalStackLayout Grid.Row="3">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0"
+                            Text="Current Song:"></Label>
+                        <ProgressBar
+                            Grid.Column="1"
+                            HorizontalOptions="Fill"
+                            Progress="{Binding ProgressBarValue}"/>
+                    </Grid>
+                </HorizontalStackLayout>-->
+                <ScrollView Grid.Row="4" x:Name="OutputScroller">
                     <Label
                     x:Name="OutputScrollerLabel"
                     Text="{Binding OutputText}"
