@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Maui.Storage;
+using System;
 using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
@@ -25,6 +26,7 @@ namespace Studio_One_File_Finder
 		const string MEDIA_POOL = "Song/mediapool.xml";
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		const string FX_EXTENSTION = ".fxpreset";
+		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
 		private static string FILE_TYPE_NODES(FileType fType)
 		{
 			switch(fType)
@@ -75,6 +77,8 @@ namespace Studio_One_File_Finder
 		private ExtraSettings _userConfig;
 		private List<string> _filesRestored;
 		private List<string> _backupsDeleted;
+
+		private DateTime _startTime;
 		public FileUpdater(BasicDelegate clearConsole, DoubleCallback setProgress, StringCallback setCurSong, BoolCallback runningCallback)
 		{
 			CurrentlyRunning = false;
@@ -104,6 +108,7 @@ namespace Studio_One_File_Finder
 		private void StartRunning()
 		{
 			CurrentlyRunning = true;
+			_startTime = DateTime.Now;
 			_setProgressBar(0.0);
 			_setCurSong("");
 			_clearConsole();
@@ -204,22 +209,23 @@ namespace Studio_One_File_Finder
 
 			if (sampleDirectories.Count == 0)
 			{
-				handler("There are no valid sample directories.");
+				await handler("There are no valid sample directories.");
 				return;
 			}
 			if (projectDirectories.Count == 0)
 			{
-				handler("There are no valid project directories.");
+				await handler("There are no valid project directories.");
 				return;
 			}
-
+			CacheAllSamples();
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			foreach (var fTypeCount in _fileTypeCounts)
 			{
 				finalString += $"\n{fTypeCount.Value} of those were {fTypeCount.Key} updates";
 			}
-			finalString += $"\n{_songsSkipped.Count} songs were not updated.";
+			finalString += $"\n\n{_songsSkipped.Count} songs were not updated.";
+			finalString += $"\nTime taken: {DateTime.Now - _startTime}";
 			await handler(finalString, "Results");
 			CurrentlyRunning = false;
 		}
@@ -282,9 +288,10 @@ namespace Studio_One_File_Finder
 		}
 		public void LoadProject(string sourceFilePath)
 		{
-			_currentOutput("*****************************************");
-			_currentOutput($"Finding samples for {sourceFilePath}");
-			_currentOutput("*****************************************");
+			_currentOutput("");
+			_currentOutput("");
+			_currentOutput($"Discovering samples for {sourceFilePath}");
+			_currentOutput("");
 			var splitPath = sourceFilePath.Split(Path.DirectorySeparatorChar);
 			if (splitPath.Length == 1)
 			{
@@ -340,6 +347,7 @@ namespace Studio_One_File_Finder
 			{
 				// Don't modify files
 				File.Delete(tempFilePath);
+				_currentOutput($"Didn't update {GetFileName(sourceFilePath, Path.DirectorySeparatorChar)}");
 				_songsSkipped.Add(sourceFilePath);
 			}
 			else
@@ -419,12 +427,12 @@ namespace Studio_One_File_Finder
 		{
 			string fileName = GetFileName(oldSamplePath);
 			string? matchingFile;
-			if (_discoveredFiles.TryGetValue(fileName, out matchingFile))
+			if (!_discoveredFiles.TryGetValue(fileName, out matchingFile))
 			{
-				_currentOutput($"{fileName} was cached, nice.");
-			}
-			else
-			{
+				if (SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(fileName).ToLower())) // it's def not in the sample folders.
+				{
+					return null;
+				}
 				foreach (var path in _sampleFolders)
 				{
 					matchingFile = SearchMyDirOfficer(new DirectoryInfo(path), fileName);
@@ -433,6 +441,43 @@ namespace Studio_One_File_Finder
 				_discoveredFiles[fileName] = matchingFile; // cache to make our other file searches a billion times faster
 			}
 			return matchingFile;
+		}
+		void SearchAllDirs(DirectoryInfo currentDir)
+		{
+			List<FileInfo> files;
+			try
+			{
+				files = currentDir.EnumerateFiles().ToList();
+			}
+			catch (Exception ex)
+			{
+				// We probably just don't have permissions.
+				//add to an error log
+				_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
+				return;
+			}
+			var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
+			if (audioFiles.Count > 0)
+			{
+				foreach (var audioFile in audioFiles)
+				{
+					_discoveredFiles[audioFile.Name] = audioFile.FullName;
+				}
+			}
+
+			var dirs = currentDir.EnumerateDirectories();
+			foreach (var dir in dirs)
+			{
+				SearchAllDirs(dir);
+			}
+		}
+		private void CacheAllSamples()
+		{
+			_currentOutput("Finding all audio files...");
+			foreach (var path in _sampleFolders)
+			{
+				SearchAllDirs(new DirectoryInfo(path));
+			}
 		}
 		/// <param name="path">MUST be format S1 stores in (uses forward slashes)</param>
 		/// <returns>Whether we think it's inside the media or bounces folder.</returns>
@@ -480,7 +525,7 @@ namespace Studio_One_File_Finder
 					{
 						if (!_userConfig.OverwriteValidPaths)
 						{
-							_currentOutput($"{fileName} already exists with the current path. Not overwriting.");
+							_currentOutput($"{fileName} reference is good.");
 							return;
 						}
 						else

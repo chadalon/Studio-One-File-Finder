@@ -258,6 +258,11 @@ namespace Studio_One_File_Finder
 			};
 			FileUpdater.Callback outputHandler = (string message) =>
 			{
+				if (message == "")
+				{
+					OutputText += "\n";
+					return;
+				}
 				DateTime curDate = DateTime.Now;
 				string msgToOut = $"\n<{curDate.ToString("HH:mm:ss.fff")}> {message}";
 				OutputText += msgToOut;
