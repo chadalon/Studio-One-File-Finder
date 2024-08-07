@@ -175,11 +175,7 @@ namespace Studio_One_File_Finder
 				_setCurSong(GetFileName(songFolderPath, Path.DirectorySeparatorChar));
 				modifier(songFolderPath);
 				count++;
-				_setProgressBar((double)count / ((count < songFolders.Count) ? 20 : (double)songFolders.Count));
-				if (count > 20)
-				{
-					break;
-				}
+				_setProgressBar((double)count / (double)songFolders.Count);
 			}
 		}
 		public async void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
