@@ -20,24 +20,42 @@ namespace Studio_One_File_Finder
 		SampleOne,
 		Impact
 	}
+	static class InstrumentEntries
+	{
+		public const string FX_EXTENSTION = ".fxpreset";
+		public const string MEDIA_POOL = "Song/mediapool.xml";
+
+		private static Dictionary<FileType, uint> _sampleCounts;
+		public static Dictionary<FileType, uint> SampleCounts => _sampleCounts;
+		public static void AddToCount(FileType fType, uint addition=1)
+		{
+			_sampleCounts[fType] += addition;
+		}
+		public static void Reset(List<FileType> typesToUpdate)
+		{
+			_sampleCounts = new();
+			foreach (var type in typesToUpdate)
+			{
+				_sampleCounts[type] = 0;
+			}
+		}
+		public static Dictionary<FileType, string> SearchNodes = new()
+		{
+			{FileType.MediaPool,  "//AudioClip/Url"},
+			{FileType.SampleOne,  "//Zone/Attributes"},
+			{FileType.Impact, "//List/Url"}
+		};
+		public static Dictionary<FileType, string> InstrumentCids = new()
+		{
+			{ FileType.SampleOne, "{C37BC9D1-6BD1-46A7-A60C-B13438666448}" },
+			{ FileType.Impact, "{3713E26C-2FCA-4024-9F25-17E9D2BE2B9B}" }
+		};
+	}
 	class FileUpdater
 	{
 		const int XML_WRAP_CHARACTER_COUNT = 100;
-		const string MEDIA_POOL = "Song/mediapool.xml";
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
-		const string FX_EXTENSTION = ".fxpreset";
 		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
-		private static string FILE_TYPE_NODES(FileType fType)
-		{
-			switch(fType)
-			{
-				case FileType.MediaPool: return "//AudioClip/Url";
-				case FileType.SampleOne: return "//Zone/Attributes";
-				case FileType.Impact: return "//List/Url";
-				default: return null;
-			}
-		}
-		Dictionary<FileType, string> _nodesToFind;
 
 		private bool _currentlyRunning;
 		public bool CurrentlyRunning
@@ -66,7 +84,6 @@ namespace Studio_One_File_Finder
 
 		private string _currentSongFolderName;
 
-		Dictionary<FileType, uint> _fileTypeCounts;
 		uint _refUpdateCount;
 		uint _projectsUpdated;
 		private List<string> _songsUpdated;
@@ -91,12 +108,10 @@ namespace Studio_One_File_Finder
 		private void InitClass()
 		{
 			_refUpdateCount = 0;
-			_fileTypeCounts = new();
 			_projectsUpdated = 0;
 			_songsUpdated = new();
 			_songsSkipped = new();
 			_sampleFolders = new();
-			_nodesToFind = new();
 			_discoveredFiles = new();
 			InitBackupVars();
 		}
@@ -193,11 +208,7 @@ namespace Studio_One_File_Finder
 			StartRunning();
 
 			InitClass();
-			foreach (var fType in typesToUpdate)
-			{
-				_nodesToFind[fType] = FILE_TYPE_NODES(fType);
-				_fileTypeCounts[fType] = 0;
-			}
+			InstrumentEntries.Reset(typesToUpdate);
 			_userConfig = config;
 
 			_currentHandler = handler;
@@ -220,7 +231,7 @@ namespace Studio_One_File_Finder
 			CacheAllSamples();
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
-			foreach (var fTypeCount in _fileTypeCounts)
+			foreach (var fTypeCount in InstrumentEntries.SampleCounts)
 			{
 				finalString += $"\n{fTypeCount.Value} of those were {fTypeCount.Key} updates";
 			}
@@ -267,10 +278,7 @@ namespace Studio_One_File_Finder
 				{
 					writer.Write(alterFileResult);
 				}
-				if (_fileTypeCounts.ContainsKey(fType))
-				{
-					_fileTypeCounts[fType] += _refUpdateCount - countBeforeCurEntry;
-				}
+				InstrumentEntries.SampleCounts[fType] += _refUpdateCount - countBeforeCurEntry;
 			}
 			else
 			{
@@ -316,18 +324,18 @@ namespace Studio_One_File_Finder
 				foreach (ZipArchiveEntry entry in source.Entries)
 				{
 					// TODO could probs refactor
-					if (entry.FullName == MEDIA_POOL && _nodesToFind.ContainsKey(FileType.MediaPool))
+					if (entry.FullName == InstrumentEntries.MEDIA_POOL && InstrumentEntries.SampleCounts.ContainsKey(FileType.MediaPool))
 					{
 						WriteEntryIfNeeded(destination, entry, FileType.MediaPool);
 					}
-					else if (entry.FullName.StartsWith("Presets/Synths/") && entry.Name.Contains(FX_EXTENSTION))
+					else if (entry.FullName.StartsWith("Presets/Synths/") && entry.Name.Contains(InstrumentEntries.FX_EXTENSTION))
 					{
-						if (_nodesToFind.ContainsKey(FileType.SampleOne) && entry.Name.Contains("SampleOne"))
+						if (InstrumentEntries.SampleCounts.ContainsKey(FileType.SampleOne) && entry.Name.Contains("SampleOne"))
 						{
 							_currentOutput("Checking SampleOne files...");
 							WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
 						}
-						else if (_nodesToFind.ContainsKey(FileType.Impact) && entry.Name.Contains("Impact"))
+						else if (InstrumentEntries.SampleCounts.ContainsKey(FileType.Impact) && entry.Name.Contains("Impact"))
 						{
 							_currentOutput("Checking Impact files...");
 							WriteEntryIfNeeded(destination, entry, FileType.Impact);
@@ -405,7 +413,7 @@ namespace Studio_One_File_Finder
 			XmlReader reader = XmlReader.Create(fileData, settings, context);
 			XmlDocument xmlDoc = new();
 			xmlDoc.Load(reader);
-			XmlNodeList? elements = xmlDoc.SelectNodes(_nodesToFind[fileType]);
+			XmlNodeList? elements = xmlDoc.SelectNodes(InstrumentEntries.SearchNodes[fileType]);
 			if (elements != null)
 			{
 				UpdateXmlNodes(elements);
