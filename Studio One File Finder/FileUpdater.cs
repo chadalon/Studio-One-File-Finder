@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.Storage;
+﻿using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
@@ -24,6 +25,7 @@ namespace Studio_One_File_Finder
 	{
 		public const string FX_EXTENSTION = ".fxpreset";
 		public const string MEDIA_POOL = "Song/mediapool.xml";
+		public const string INSTRUMENT_TAG = "AudioEffectPreset";
 
 		private static Dictionary<FileType, uint> _sampleCounts;
 		public static Dictionary<FileType, uint> SampleCounts => _sampleCounts;
@@ -45,10 +47,10 @@ namespace Studio_One_File_Finder
 			{FileType.SampleOne,  "//Zone/Attributes"},
 			{FileType.Impact, "//List/Url"}
 		};
-		public static Dictionary<FileType, string> InstrumentCids = new()
+		public static Dictionary<string, FileType> InstrumentCids = new()
 		{
-			{ FileType.SampleOne, "{C37BC9D1-6BD1-46A7-A60C-B13438666448}" },
-			{ FileType.Impact, "{3713E26C-2FCA-4024-9F25-17E9D2BE2B9B}" }
+			{ "{C37BC9D1-6BD1-46A7-A60C-B13438666448}", FileType.SampleOne },
+			{ "{3713E26C-2FCA-4024-9F25-17E9D2BE2B9B}", FileType.Impact }
 		};
 	}
 	class FileUpdater
@@ -262,28 +264,29 @@ namespace Studio_One_File_Finder
 		/// <param name="destination"></param>
 		/// <param name="entry"></param>
 		/// <param name="fType"></param>
-		private void WriteEntryIfNeeded(ZipArchive destination, ZipArchiveEntry entry, FileType fType)
+		private void WriteEntryIfNeeded(ZipArchive destination, ZipArchiveEntry entry, bool isMediaPool=false)
 		{
 			string alterFileResult;
-			uint countBeforeCurEntry = _refUpdateCount;
+			Tuple<string, FileType, uint>? result;
 			using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
 			{
-				alterFileResult = AlterFile(reader, fType);
+				result = AlterFileIfValidInstrument(reader, isMediaPool);
 			}
-			// keep our hands off the entry if we can
-			if (_refUpdateCount - countBeforeCurEntry > 0)
+			if (result == null)
 			{
-				var destinationEntry = destination.CreateEntry(entry.FullName);
-				using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
-				{
-					writer.Write(alterFileResult);
-				}
-				InstrumentEntries.SampleCounts[fType] += _refUpdateCount - countBeforeCurEntry;
-			}
-			else
-			{
+				// keep our hands off the entry if we can
 				CopyEntry(destination, entry);
+				return;
 			}
+			alterFileResult = result.Item1;
+			var fType = result.Item2;
+
+			var destinationEntry = destination.CreateEntry(entry.FullName);
+			using (var writer = new StreamWriter(destinationEntry.Open(), Encoding.UTF8))
+			{
+				writer.Write(alterFileResult);
+			}
+			InstrumentEntries.SampleCounts[fType] += result.Item3;
 		}
 		private void CopyEntry(ZipArchive destination, ZipArchiveEntry entry)
 		{
@@ -326,24 +329,11 @@ namespace Studio_One_File_Finder
 					// TODO could probs refactor
 					if (entry.FullName == InstrumentEntries.MEDIA_POOL && InstrumentEntries.SampleCounts.ContainsKey(FileType.MediaPool))
 					{
-						WriteEntryIfNeeded(destination, entry, FileType.MediaPool);
+						WriteEntryIfNeeded(destination, entry, true);
 					}
 					else if (entry.FullName.StartsWith("Presets/Synths/") && entry.Name.Contains(InstrumentEntries.FX_EXTENSTION))
 					{
-						if (InstrumentEntries.SampleCounts.ContainsKey(FileType.SampleOne) && entry.Name.Contains("SampleOne"))
-						{
-							_currentOutput("Checking SampleOne files...");
-							WriteEntryIfNeeded(destination, entry, FileType.SampleOne);
-						}
-						else if (InstrumentEntries.SampleCounts.ContainsKey(FileType.Impact) && entry.Name.Contains("Impact"))
-						{
-							_currentOutput("Checking Impact files...");
-							WriteEntryIfNeeded(destination, entry, FileType.Impact);
-						}
-						else
-						{
-							CopyEntry(destination, entry);
-						}
+						WriteEntryIfNeeded(destination, entry);
 					}
 					else
 					{
@@ -404,7 +394,27 @@ namespace Studio_One_File_Finder
 			}
 			return null;
 		}
-		string AlterFile(StreamReader fileData, FileType fileType)
+		FileType? CheckForInstrument(XmlDocument doc)
+		{
+			XmlNodeList? elements = doc.SelectNodes(InstrumentEntries.INSTRUMENT_TAG);
+			if (elements == null || elements.Count == 0) return null;
+			// attrib
+			string? cid = null;
+			foreach (XmlNode element in elements)
+			{
+				cid = element.Attributes?.GetNamedItem("cid")?.Value;
+				if (cid != null)
+				{
+					FileType fType;
+					if (InstrumentEntries.InstrumentCids.TryGetValue(cid, out fType))
+					{
+						return fType;
+					}
+				}
+			}
+			return null;
+		}
+		Tuple<string, FileType, uint>? AlterFileIfValidInstrument(StreamReader fileData, bool isMediaPool)
 		{
 			XmlReaderSettings settings = new XmlReaderSettings { NameTable = new NameTable() };
 			XmlNamespaceManager xmlns = new XmlNamespaceManager(settings.NameTable);
@@ -413,13 +423,28 @@ namespace Studio_One_File_Finder
 			XmlReader reader = XmlReader.Create(fileData, settings, context);
 			XmlDocument xmlDoc = new();
 			xmlDoc.Load(reader);
-			XmlNodeList? elements = xmlDoc.SelectNodes(InstrumentEntries.SearchNodes[fileType]);
+			FileType? fileType;
+			if (!isMediaPool)
+			{
+				fileType = CheckForInstrument(xmlDoc);
+				if (fileType == null || !InstrumentEntries.SampleCounts.ContainsKey((FileType)fileType))
+				{
+					return null;
+				}
+			}
+			else
+			{
+				fileType = FileType.MediaPool;
+			}
+			XmlNodeList? elements = xmlDoc.SelectNodes(InstrumentEntries.SearchNodes[(FileType)fileType]);
+			uint countBeforeCurEntry = _refUpdateCount;
 			if (elements != null)
 			{
 				UpdateXmlNodes(elements);
 			}
+			if (_refUpdateCount - countBeforeCurEntry == 0) return null;
 
-			return Beautify(xmlDoc);
+			return Tuple.Create(Beautify(xmlDoc), (FileType)fileType, _refUpdateCount - countBeforeCurEntry);
 		}
 		private string GetFileName(string fullPath, char dirSeparator='/')
 		{
