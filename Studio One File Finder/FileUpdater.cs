@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
@@ -41,11 +42,11 @@ namespace Studio_One_File_Finder
 				_sampleCounts[type] = 0;
 			}
 		}
-		public static Dictionary<FileType, string> SearchNodes = new()
+		public static Dictionary<FileType, List<string>> SearchNodes = new()
 		{
-			{FileType.MediaPool,  "//AudioClip/Url"},
-			{FileType.SampleOne,  "//Zone/Attributes"},
-			{FileType.Impact, "//List/Url"}
+			{FileType.MediaPool,  new(){"//AudioClip/Url" } },
+			{FileType.SampleOne,  new() { "//Zone/Attributes", "//List/Url" }},
+			{FileType.Impact, new() { "//List/Url" }}
 		};
 		public static Dictionary<string, FileType> InstrumentCids = new()
 		{
@@ -436,11 +437,20 @@ namespace Studio_One_File_Finder
 			{
 				fileType = FileType.MediaPool;
 			}
-			XmlNodeList? elements = xmlDoc.SelectNodes(InstrumentEntries.SearchNodes[(FileType)fileType]);
-			uint countBeforeCurEntry = _refUpdateCount;
-			if (elements != null)
+			List<XmlNodeList> elements = new();
+			foreach (string nodes in InstrumentEntries.SearchNodes[(FileType)fileType])
 			{
-				UpdateXmlNodes(elements);
+				XmlNodeList? nodeList = xmlDoc.SelectNodes(nodes);
+				if (nodeList == null) continue;
+				elements.Add(nodeList);
+			} 
+			uint countBeforeCurEntry = _refUpdateCount;
+			if (elements.Count != 0)
+			{
+				foreach (var elems in elements)
+				{
+					UpdateXmlNodes(elems);
+				}
 			}
 			if (_refUpdateCount - countBeforeCurEntry == 0) return null;
 
