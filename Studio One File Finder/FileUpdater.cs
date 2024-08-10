@@ -232,6 +232,7 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CacheAllSamples();
+			if (_cancellationToken.IsCancellationRequested) return;
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			foreach (var fTypeCount in InstrumentEntries.SampleCounts)
@@ -528,6 +529,7 @@ namespace Studio_One_File_Finder
 			foreach (var path in _sampleFolders)
 			{
 				SearchAllDirs(new DirectoryInfo(path));
+				if (_cancellationToken.IsCancellationRequested ) return;
 			}
 		}
 		/// <param name="path">MUST be format S1 stores in (uses forward slashes)</param>
