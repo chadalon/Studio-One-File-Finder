@@ -490,7 +490,6 @@ namespace Studio_One_File_Finder
 	}
 	public class SongFolderInfo : FolderInfo
 	{
-		private Queue<DirectoryInfo> _directoriesToSearch;
 		public SongFolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert) : base(path, indexInCollection, alert) { }
 		public override async void VerifyPath()
 		{
@@ -499,14 +498,13 @@ namespace Studio_One_File_Finder
 		private async Task<bool> FolderPathIsValidAsync()
 		{
 			if (!base.FolderPathIsValid()) return false;
-			_directoriesToSearch = new Queue<DirectoryInfo>();
 			try
 			{
 				return SearchMyDirOfficer(new DirectoryInfo(FolderPath));
 			}
 			catch (Exception ex)
 			{
-				await Application.Current.Dispatcher.DispatchAsync(async () => _alert.Invoke("Problem with directory", ex.Message, "okay bruv"));
+				await Application.Current!.Dispatcher.DispatchAsync(async () => await _alert.Invoke("Problem with directory", ex.Message, "okay bruv"));
 				return false;
 			}
 		}
@@ -515,17 +513,32 @@ namespace Studio_One_File_Finder
 		/// </summary>
 		/// <param name="currentDir"></param>
 		/// <returns></returns>
-		bool SearchMyDirOfficer(DirectoryInfo currentDir)
+		bool SearchMyDirOfficer(DirectoryInfo dir)
 		{
-			var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
-			var bupFiles = Directory.GetFiles(currentDir.FullName, $"*{FileUpdater.BACKUP_FILE_EXTENSION}").ToList();
-			if (songFiles.Count > 0 || bupFiles.Count > 0) return true;
-            foreach (var item in currentDir.EnumerateDirectories())
+			Queue<DirectoryInfo> directoriesToSearch = new();
+			directoriesToSearch.Enqueue(dir);
+			while (directoriesToSearch.Any())
 			{
-				_directoriesToSearch.Enqueue(item);
+				DirectoryInfo currentDir = directoriesToSearch.Dequeue();
+				List<string> songFiles;
+				List<string> bupFiles;
+				try
+				{
+					songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
+					bupFiles = Directory.GetFiles(currentDir.FullName, $"*{FileUpdater.BACKUP_FILE_EXTENSION}").ToList();
+				}
+				catch (Exception e)
+				{
+					// probs just don't have admin rights to current folder
+					continue;
+				}
+				if (songFiles.Count > 0 || bupFiles.Count > 0) return true;
+				foreach (var item in currentDir.EnumerateDirectories())
+				{
+					directoriesToSearch.Enqueue(item);
+				}
 			}
-			if (_directoriesToSearch.Count == 0) return false;
-			return SearchMyDirOfficer(_directoriesToSearch.Dequeue());
+			return false;
 		}
 	}
 

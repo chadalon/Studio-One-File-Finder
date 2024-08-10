@@ -206,6 +206,7 @@
                                 <Button
                                     Grid.Column="1"
                                     Text="Delete Backup Files"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Red}, Dark={StaticResource RedDark}}"
                                     IsEnabled="{Binding CanRestore}"
                                     Clicked="OnDeleteBackupsClicked"
                                     Margin="{StaticResource LeftButtonMargin}">
@@ -228,6 +229,7 @@
                     Clicked="OnSubmitClicked"/>
                     <Button Grid.Column="1"
                             Text="Stop"
+                            IsVisible="{Binding CurrentlyRunning}"
                             Clicked="OnStopClicked"
                             BackgroundColor="{AppThemeBinding Light={StaticResource Red}, Dark={StaticResource RedDark}}"
                             Margin="{StaticResource LeftButtonMargin}"/>

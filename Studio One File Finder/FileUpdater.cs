@@ -153,6 +153,29 @@ namespace Studio_One_File_Finder
 		{
 			count = 0;
 			HashSet<string> songFolders = new();
+			void FindEnclosingStudioOneFolders(DirectoryInfo directory, string searchString="*.song")
+			{
+				Queue<DirectoryInfo> dirsToSearch = new();
+				dirsToSearch.Enqueue(directory);
+				while (dirsToSearch.Any())
+				{
+					if (_cancellationToken.IsCancellationRequested)
+					{
+						return;
+					}
+					DirectoryInfo currentDir = dirsToSearch.Dequeue();
+					var songFiles = Directory.GetFiles(currentDir.FullName, searchString).ToList();
+					if (songFiles.Any() && currentDir.Name != "History")
+					{
+						songFolders.Add(currentDir.FullName);
+					}
+					foreach (var item in currentDir.EnumerateDirectories())
+					{
+						dirsToSearch.Enqueue(item);
+					}
+				}
+			}
+			/*
 			void FindSongFolders(DirectoryInfo currentDir)
 			{
 				var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
@@ -178,16 +201,26 @@ namespace Studio_One_File_Finder
 					FindBackupFolders(item);
 				}
 
-			}
+			}*/
 
 			foreach (string projectsDir in projectDirectories)
 			{
 				int countBefore = songFolders.Count;
-				FindSongFolders(new DirectoryInfo(projectsDir));
 				if (includeBackups)
 				{
-					FindBackupFolders(new DirectoryInfo(projectsDir));
+					FindEnclosingStudioOneFolders(new DirectoryInfo(projectsDir), $"*{BACKUP_FILE_EXTENSION}");
 				}
+				else
+				{
+					FindEnclosingStudioOneFolders(new DirectoryInfo(projectsDir));
+				}
+				if (_cancellationToken.IsCancellationRequested) return;
+				/*
+			FindSongFolders(new DirectoryInfo(projectsDir));
+			if (includeBackups)
+			{
+				FindBackupFolders(new DirectoryInfo(projectsDir));
+			}*/
 
 				if (songFolders.Count - countBefore == 0)
 				{
@@ -745,6 +778,10 @@ namespace Studio_One_File_Finder
 			try
 			{
 				DoStuffWithSongsInThisDir(projectDirectories, RestoreFileIfExists, true);
+				if (_cancellationToken.IsCancellationRequested)
+				{
+					_currentOutput(USER_CANCEL_STRING);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -787,6 +824,10 @@ namespace Studio_One_File_Finder
 			try
 			{
 				DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
+				if (_cancellationToken.IsCancellationRequested)
+				{
+					_currentOutput(USER_CANCEL_STRING);
+				}
 			}
 			catch (Exception ex)
 			{
