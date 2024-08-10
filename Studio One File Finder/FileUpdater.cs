@@ -59,6 +59,8 @@ namespace Studio_One_File_Finder
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
+		private const string LOCATING_SAMPLES_STRING = "Locating samples...";
+		private const string USER_CANCEL_STRING = "User canceled operation.";
 
 		private bool _currentlyRunning;
 		public bool CurrentlyRunning
@@ -71,9 +73,8 @@ namespace Studio_One_File_Finder
 				_currentlyRunning = value;
 			}
 		}
-		
 
-		private bool _updateSampleOneRefs;
+		private CancellationToken _cancellationToken;
 
 		public delegate void Callback(string message);
 		public delegate Task CallbackAlert(string message, string title="Alert");
@@ -123,9 +124,10 @@ namespace Studio_One_File_Finder
 			_filesRestored = new();
 			_backupsDeleted = new();
 		}
-		private void StartRunning()
+		private void StartRunning(CancellationToken cancellationToken)
 		{
 			CurrentlyRunning = true;
+			_cancellationToken = cancellationToken;
 			_startTime = DateTime.Now;
 			_setProgressBar(0.0);
 			_setCurSong("");
@@ -151,6 +153,29 @@ namespace Studio_One_File_Finder
 		{
 			count = 0;
 			HashSet<string> songFolders = new();
+			void FindEnclosingStudioOneFolders(DirectoryInfo directory, string searchString="*.song")
+			{
+				Queue<DirectoryInfo> dirsToSearch = new();
+				dirsToSearch.Enqueue(directory);
+				while (dirsToSearch.Any())
+				{
+					if (_cancellationToken.IsCancellationRequested)
+					{
+						return;
+					}
+					DirectoryInfo currentDir = dirsToSearch.Dequeue();
+					var songFiles = Directory.GetFiles(currentDir.FullName, searchString).ToList();
+					if (songFiles.Any() && currentDir.Name != "History")
+					{
+						songFolders.Add(currentDir.FullName);
+					}
+					foreach (var item in currentDir.EnumerateDirectories())
+					{
+						dirsToSearch.Enqueue(item);
+					}
+				}
+			}
+			/*
 			void FindSongFolders(DirectoryInfo currentDir)
 			{
 				var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
@@ -173,19 +198,29 @@ namespace Studio_One_File_Finder
 				}
 				foreach (var item in currentDir.EnumerateDirectories())
 				{
-					FindSongFolders(item);
+					FindBackupFolders(item);
 				}
 
-			}
+			}*/
 
 			foreach (string projectsDir in projectDirectories)
 			{
 				int countBefore = songFolders.Count;
-				FindSongFolders(new DirectoryInfo(projectsDir));
 				if (includeBackups)
 				{
-					FindBackupFolders(new DirectoryInfo(projectsDir));
+					FindEnclosingStudioOneFolders(new DirectoryInfo(projectsDir), $"*{BACKUP_FILE_EXTENSION}");
 				}
+				else
+				{
+					FindEnclosingStudioOneFolders(new DirectoryInfo(projectsDir));
+				}
+				if (_cancellationToken.IsCancellationRequested) return;
+				/*
+			FindSongFolders(new DirectoryInfo(projectsDir));
+			if (includeBackups)
+			{
+				FindBackupFolders(new DirectoryInfo(projectsDir));
+			}*/
 
 				if (songFolders.Count - countBefore == 0)
 				{
@@ -197,18 +232,19 @@ namespace Studio_One_File_Finder
 			{
 				_setCurSong(GetFileName(songFolderPath, Path.DirectorySeparatorChar));
 				modifier(songFolderPath);
+				if (_cancellationToken.IsCancellationRequested) return;
 				count++;
 				_setProgressBar((double)count / (double)songFolders.Count);
 			}
 		}
-		public async void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
+		public async void UpdateFiles(CancellationToken cancellationToken, List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
 		{
 			if (CurrentlyRunning)
 			{
 				await handler("The file updater is already running!", "Holup");
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 
 			InitClass();
 			InstrumentEntries.Reset(typesToUpdate);
@@ -232,7 +268,17 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CacheAllSamples();
+			if (_cancellationToken.IsCancellationRequested)
+			{
+				_currentOutput(USER_CANCEL_STRING);
+				CurrentlyRunning = false;
+				return;
+			}
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
+			if (_cancellationToken.IsCancellationRequested)
+			{
+				_currentOutput(USER_CANCEL_STRING);
+			}
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			foreach (var fTypeCount in InstrumentEntries.SampleCounts)
 			{
@@ -257,6 +303,7 @@ namespace Studio_One_File_Finder
 			foreach (var songFile in songFiles)
 			{
 				LoadProject(songFile);
+				if (_cancellationToken.IsCancellationRequested) return;
 			}
 		}
 		/// <summary>
@@ -485,42 +532,57 @@ namespace Studio_One_File_Finder
 			}
 			return matchingFile;
 		}
-		void SearchAllDirs(DirectoryInfo currentDir)
+		void SearchAllSampleDirs(DirectoryInfo currentDir)
 		{
-			List<FileInfo> files;
-			try
+			Queue<DirectoryInfo> dirsToSearch = new Queue<DirectoryInfo>();
+			dirsToSearch.Enqueue(currentDir);
+			while (dirsToSearch.Any())
 			{
-				files = currentDir.EnumerateFiles().ToList();
-			}
-			catch (Exception ex)
-			{
-				// We probably just don't have permissions.
-				//add to an error log
-				_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
-				return;
-			}
-			var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
-			if (audioFiles.Count > 0)
-			{
-				foreach (var audioFile in audioFiles)
+				if (_cancellationToken.IsCancellationRequested) return;
+				DirectoryInfo curDir = dirsToSearch.Dequeue();
+				List<FileInfo> files;
+				try
 				{
-					_discoveredFiles[audioFile.Name] = audioFile.FullName;
+					files = curDir.EnumerateFiles().ToList();
 				}
-			}
+				catch (Exception ex)
+				{
+					// We probably just don't have permissions.
+					//add to an error log
+					_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
+					continue;
+				}
+				var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
+				if (audioFiles.Count > 0)
+				{
+					foreach (var audioFile in audioFiles)
+					{
+						_discoveredFiles[audioFile.Name] = audioFile.FullName;
+						if (_discoveredFiles.Count % 10 == 0)
+						{
+							_setCurSong($"{LOCATING_SAMPLES_STRING} {_discoveredFiles.Count} discovered");
+						}
+					}
+				}
 
-			var dirs = currentDir.EnumerateDirectories();
-			foreach (var dir in dirs)
-			{
-				SearchAllDirs(dir);
+				var dirs = curDir.EnumerateDirectories();
+				foreach (var dir in dirs)
+				{
+					dirsToSearch.Enqueue(dir);
+				}
+
 			}
 		}
 		private void CacheAllSamples()
 		{
 			_currentOutput("Finding all audio files...");
+			_setCurSong(LOCATING_SAMPLES_STRING);
 			foreach (var path in _sampleFolders)
 			{
-				SearchAllDirs(new DirectoryInfo(path));
+				SearchAllSampleDirs(new DirectoryInfo(path));
+				if (_cancellationToken.IsCancellationRequested ) return;
 			}
+			_currentOutput($"Found {_discoveredFiles.Count} samples");
 		}
 		/// <param name="path">MUST be format S1 stores in (uses forward slashes)</param>
 		/// <returns>Whether we think it's inside the media or bounces folder.</returns>
@@ -694,7 +756,7 @@ namespace Studio_One_File_Finder
 				_filesRestored.Add(fileName);
 			}
 		}
-		public async void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		public async void RestoreBackups(CancellationToken cancellationToken, List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
 			{
@@ -709,13 +771,17 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
 			try
 			{
 				DoStuffWithSongsInThisDir(projectDirectories, RestoreFileIfExists, true);
+				if (_cancellationToken.IsCancellationRequested)
+				{
+					_currentOutput(USER_CANCEL_STRING);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -735,7 +801,7 @@ namespace Studio_One_File_Finder
 				_backupsDeleted.Add(backup);
 			}
 		}
-		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		public async void DeleteBackups(CancellationToken cancellationToken, List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
 			{
@@ -751,13 +817,17 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
 			try
 			{
 				DoStuffWithSongsInThisDir(projectDirectories, DeleteFileIfExists);
+				if (_cancellationToken.IsCancellationRequested)
+				{
+					_currentOutput(USER_CANCEL_STRING);
+				}
 			}
 			catch (Exception ex)
 			{
