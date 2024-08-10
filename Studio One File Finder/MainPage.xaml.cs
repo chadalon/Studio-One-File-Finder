@@ -83,6 +83,10 @@ namespace Studio_One_File_Finder
 		{
 			await Task.Run(FilePreferences.SubmitEverything);
 		}
+		private void OnStopClicked(object sender, EventArgs e)
+		{
+			Task.Run(FilePreferences.StopFileUpdating);
+		}
 		private async void OnRestoreClicked(object sender, EventArgs e)
 		{
 			await Task.Run(FilePreferences.RestoreFiles);

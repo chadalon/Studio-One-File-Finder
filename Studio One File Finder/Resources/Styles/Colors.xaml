@@ -14,6 +14,8 @@
     <Color x:Key="Tertiary">#2B0B98</Color>
     <Color x:Key="Golden">#d4d42b</Color>
     <Color x:Key="GoldenDark">#eae999</Color>
+    <Color x:Key="Red">#AA0000</Color>
+    <Color x:Key="RedDark">#BB0000</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>

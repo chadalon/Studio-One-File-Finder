@@ -209,39 +209,21 @@
                     </mct:Expander.Content>
 
                 </mct:Expander>
-                <VerticalStackLayout Grid.Row="2"
-                                     Spacing="10">
-                    <Button
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
                     Text="Replace Missing Samples"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Golden}, Dark={StaticResource GoldenDark}}"
                     IsEnabled="{Binding CanSubmit}"
                     Clicked="OnSubmitClicked"/>
-                    <!--
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid Grid.Column="0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="4*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width=".1*"/>
-                            </Grid.ColumnDefinitions>
-                            <Rectangle Grid.Column="1" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
-                        </Grid>
-                        <Label Grid.Column="1" Text="or" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
-                        <Grid Grid.Column="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width=".1*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="4*"/>
-                            </Grid.ColumnDefinitions>
-                            <Rectangle Grid.Column="1" Fill="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" HeightRequest="10" VerticalOptions="Center"/>
-                        </Grid>
-                    </Grid>-->
-                </VerticalStackLayout>
+                    <Button Grid.Column="1"
+                            Text="Stop"
+                            Clicked="OnStopClicked"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Red}, Dark={StaticResource RedDark}}"/>
+                </Grid>
                 <Grid Grid.Row="3"
                       IsVisible="{Binding CurrentlyRunning}">
                     <Grid.ColumnDefinitions>

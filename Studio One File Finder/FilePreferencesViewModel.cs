@@ -132,6 +132,7 @@ namespace Studio_One_File_Finder
 			}
 		}
 		public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
+		public ReactiveCommand<Unit, Unit> StopCommand { get; set; }
 
 		private string _currentSong;
 		public string CurrentSong
@@ -223,6 +224,8 @@ namespace Studio_One_File_Finder
 			OutputText = "Hello, World!";
 			this.WhenAnyValue(x => x.ReplaceMediaPool, x => x.ReplaceSampleOne, x => x.ReplaceImpact).Subscribe(_ => SetCanSubmit());
 
+			//StopCommand = ReactiveCommand.Create(StopFileUpdating);
+
 			/*
 			ProjectFolders.ToObservableChangeSet().Subscribe(_ =>
 			{
@@ -251,6 +254,10 @@ namespace Studio_One_File_Finder
 			}
 			_cancellationTokenSource = new CancellationTokenSource();
 			return _cancellationTokenSource.Token;
+		}
+		public void StopFileUpdating()
+		{
+			_cancellationTokenSource.Cancel();
 		}
 		public void SubmitEverything()
 		{

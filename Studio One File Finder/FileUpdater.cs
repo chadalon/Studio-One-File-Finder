@@ -59,6 +59,7 @@ namespace Studio_One_File_Finder
 		const int XML_WRAP_CHARACTER_COUNT = 100;
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
+		private const string LOCATING_SAMPLES_STRING = "Locating samples...";
 
 		private bool _currentlyRunning;
 		public bool CurrentlyRunning
@@ -232,7 +233,12 @@ namespace Studio_One_File_Finder
 				return;
 			}
 			CacheAllSamples();
-			if (_cancellationToken.IsCancellationRequested) return;
+			if (_cancellationToken.IsCancellationRequested)
+			{
+				_currentOutput("User canceled operation.");
+				CurrentlyRunning = false;
+				return;
+			}
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			foreach (var fTypeCount in InstrumentEntries.SampleCounts)
@@ -486,7 +492,7 @@ namespace Studio_One_File_Finder
 			}
 			return matchingFile;
 		}
-		void SearchAllDirs(DirectoryInfo currentDir)
+		void SearchAllSampleDirs(DirectoryInfo currentDir)
 		{
 			Queue<DirectoryInfo> dirsToSearch = new Queue<DirectoryInfo>();
 			dirsToSearch.Enqueue(currentDir);
@@ -504,7 +510,7 @@ namespace Studio_One_File_Finder
 					// We probably just don't have permissions.
 					//add to an error log
 					_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
-					return;
+					continue;
 				}
 				var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
 				if (audioFiles.Count > 0)
@@ -512,6 +518,10 @@ namespace Studio_One_File_Finder
 					foreach (var audioFile in audioFiles)
 					{
 						_discoveredFiles[audioFile.Name] = audioFile.FullName;
+						if (_discoveredFiles.Count % 10 == 0)
+						{
+							_setCurSong($"{LOCATING_SAMPLES_STRING} {_discoveredFiles.Count} discovered");
+						}
 					}
 				}
 
@@ -526,11 +536,13 @@ namespace Studio_One_File_Finder
 		private void CacheAllSamples()
 		{
 			_currentOutput("Finding all audio files...");
+			_setCurSong(LOCATING_SAMPLES_STRING);
 			foreach (var path in _sampleFolders)
 			{
-				SearchAllDirs(new DirectoryInfo(path));
+				SearchAllSampleDirs(new DirectoryInfo(path));
 				if (_cancellationToken.IsCancellationRequested ) return;
 			}
+			_currentOutput($"Found {_discoveredFiles.Count} samples");
 		}
 		/// <param name="path">MUST be format S1 stores in (uses forward slashes)</param>
 		/// <returns>Whether we think it's inside the media or bounces folder.</returns>
