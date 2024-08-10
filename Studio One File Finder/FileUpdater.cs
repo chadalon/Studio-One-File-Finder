@@ -46,7 +46,7 @@ namespace Studio_One_File_Finder
 		{
 			{FileType.MediaPool,  new(){"//AudioClip/Url" } },
 			{FileType.SampleOne,  new() { "//Zone/Attributes", "//List/Url" }},
-			{FileType.Impact, new() { "//List/Url" }}
+			{FileType.Impact, new() { "//List/Url", "//Zone/Attributes" }}
 		};
 		public static Dictionary<string, FileType> InstrumentCids = new()
 		{
