@@ -173,6 +173,8 @@ namespace Studio_One_File_Finder
 			}
 		}
 
+		private CancellationTokenSource _cancellationTokenSource;
+
 		private FileUpdater _fileUpdater;
 
 		public FilePreferencesViewModel()
@@ -180,6 +182,7 @@ namespace Studio_One_File_Finder
 		}
 		public void InitializeFilePreferences(MyEventAction alertAction, MyPromptEventAction promptAlertAction)
 		{
+			_cancellationTokenSource = new CancellationTokenSource();
 			Alert += alertAction;
 			PromptAlert += promptAlertAction;
 			OutputText = "";
@@ -240,6 +243,15 @@ namespace Studio_One_File_Finder
 				}
 			});//, canSubmit);*/
 		}
+		private CancellationToken GetNewCancellationToken()
+		{
+			if (!_cancellationTokenSource.Token.IsCancellationRequested)
+			{
+				return _cancellationTokenSource.Token;
+			}
+			_cancellationTokenSource = new CancellationTokenSource();
+			return _cancellationTokenSource.Token;
+		}
 		public void SubmitEverything()
 		{
 			List<string> validSampleDirs = SampleFolders.Where(x => x.PathIsValid).Select(x => x.FolderPath).ToList();
@@ -272,7 +284,7 @@ namespace Studio_One_File_Finder
 				OverwriteValidPaths = OverWriteValidPaths,
 				UpdateDuplicateFiles = UpdateDuplicates
 			};
-			_fileUpdater.UpdateFiles(validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
+			_fileUpdater.UpdateFiles(GetNewCancellationToken(), validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
 		}
 		public void RestoreFiles()
 		{
@@ -293,7 +305,7 @@ namespace Studio_One_File_Finder
 			{
 				return await Application.Current.Dispatcher.DispatchAsync(async () => await PromptAlert(title, message, yes, no));
 			};
-			_fileUpdater.RestoreBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
+			_fileUpdater.RestoreBackups(GetNewCancellationToken(), validProjectDirs, errorHandler, outputHandler, askToCont);
 		}
 		public void DeleteBackups()
 		{
@@ -314,7 +326,7 @@ namespace Studio_One_File_Finder
 			{
 				return await Application.Current.Dispatcher.DispatchAsync(async () => await PromptAlert(title, message, yes, no));
 			};
-			_fileUpdater.DeleteBackups(validProjectDirs, errorHandler, outputHandler, askToCont);
+			_fileUpdater.DeleteBackups(GetNewCancellationToken(), validProjectDirs, errorHandler, outputHandler, askToCont);
 
 		}
 

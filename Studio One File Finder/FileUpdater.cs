@@ -71,9 +71,8 @@ namespace Studio_One_File_Finder
 				_currentlyRunning = value;
 			}
 		}
-		
 
-		private bool _updateSampleOneRefs;
+		private CancellationToken _cancellationToken;
 
 		public delegate void Callback(string message);
 		public delegate Task CallbackAlert(string message, string title="Alert");
@@ -123,9 +122,10 @@ namespace Studio_One_File_Finder
 			_filesRestored = new();
 			_backupsDeleted = new();
 		}
-		private void StartRunning()
+		private void StartRunning(CancellationToken cancellationToken)
 		{
 			CurrentlyRunning = true;
+			_cancellationToken = cancellationToken;
 			_startTime = DateTime.Now;
 			_setProgressBar(0.0);
 			_setCurSong("");
@@ -201,14 +201,14 @@ namespace Studio_One_File_Finder
 				_setProgressBar((double)count / (double)songFolders.Count);
 			}
 		}
-		public async void UpdateFiles(List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
+		public async void UpdateFiles(CancellationToken cancellationToken, List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
 		{
 			if (CurrentlyRunning)
 			{
 				await handler("The file updater is already running!", "Holup");
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 
 			InitClass();
 			InstrumentEntries.Reset(typesToUpdate);
@@ -487,31 +487,39 @@ namespace Studio_One_File_Finder
 		}
 		void SearchAllDirs(DirectoryInfo currentDir)
 		{
-			List<FileInfo> files;
-			try
+			Queue<DirectoryInfo> dirsToSearch = new Queue<DirectoryInfo>();
+			dirsToSearch.Enqueue(currentDir);
+			while (dirsToSearch.Any())
 			{
-				files = currentDir.EnumerateFiles().ToList();
-			}
-			catch (Exception ex)
-			{
-				// We probably just don't have permissions.
-				//add to an error log
-				_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
-				return;
-			}
-			var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
-			if (audioFiles.Count > 0)
-			{
-				foreach (var audioFile in audioFiles)
+				if (_cancellationToken.IsCancellationRequested) return;
+				DirectoryInfo curDir = dirsToSearch.Dequeue();
+				List<FileInfo> files;
+				try
 				{
-					_discoveredFiles[audioFile.Name] = audioFile.FullName;
+					files = curDir.EnumerateFiles().ToList();
 				}
-			}
+				catch (Exception ex)
+				{
+					// We probably just don't have permissions.
+					//add to an error log
+					_currentOutput($"Problem with searching folder for samples:\n{ex.Message} - (maybe you want to run this in admin mode?)");
+					return;
+				}
+				var audioFiles = files.Where(x => SUPPORTED_FILE_TYPES.Contains(Path.GetExtension(x.Name).ToLower())).ToList();
+				if (audioFiles.Count > 0)
+				{
+					foreach (var audioFile in audioFiles)
+					{
+						_discoveredFiles[audioFile.Name] = audioFile.FullName;
+					}
+				}
 
-			var dirs = currentDir.EnumerateDirectories();
-			foreach (var dir in dirs)
-			{
-				SearchAllDirs(dir);
+				var dirs = curDir.EnumerateDirectories();
+				foreach (var dir in dirs)
+				{
+					dirsToSearch.Enqueue(dir);
+				}
+
 			}
 		}
 		private void CacheAllSamples()
@@ -694,7 +702,7 @@ namespace Studio_One_File_Finder
 				_filesRestored.Add(fileName);
 			}
 		}
-		public async void RestoreBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		public async void RestoreBackups(CancellationToken cancellationToken, List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
 			{
@@ -709,7 +717,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
@@ -735,7 +743,7 @@ namespace Studio_One_File_Finder
 				_backupsDeleted.Add(backup);
 			}
 		}
-		public async void DeleteBackups(List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
+		public async void DeleteBackups(CancellationToken cancellationToken, List<string> projectDirectories, CallbackAlert handler, Callback output, CallbackPrompt verifyContinue)
 		{
 			if (CurrentlyRunning)
 			{
@@ -751,7 +759,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
-			StartRunning();
+			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
 			_currentOutput = output;
