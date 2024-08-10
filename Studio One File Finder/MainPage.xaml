@@ -10,6 +10,8 @@
         <Style TargetType="CheckBox" x:Key="JustCB">
             <Setter Property="Margin" Value="0,0,10,0" />
         </Style>
+        <Thickness x:Key="ButtonMargin" Top="0" Left="5" Right="5" Bottom ="0"></Thickness>
+        <Thickness x:Key="LeftButtonMargin" Top="0" Left="5" Right="0" Bottom ="0"></Thickness>
     </ContentPage.Resources>
 
     <Grid>
@@ -74,10 +76,12 @@
                                             </Entry>
                                             <Button
                                         Text="Browse"
-                                        Clicked="OnBrowseClicked" />
+                                        Clicked="OnBrowseClicked" 
+                                                Margin="{StaticResource LeftButtonMargin}"/>
                                             <Button
                                         Text="Delete"
-                                        Clicked="OnDeleteSampleDirClicked" />
+                                        Clicked="OnDeleteSampleDirClicked" 
+                                                Margin="{StaticResource ButtonMargin}"/>
 
                                         </HorizontalStackLayout>
                                     </StackLayout>
@@ -121,10 +125,12 @@
                                             </Entry>
                                             <Button
                                         Text="Browse"
-                                        Clicked="OnBrowseClicked" />
+                                        Clicked="OnBrowseClicked"
+                                                Margin="{StaticResource LeftButtonMargin}"/>
                                             <Button
                                         Text="Delete"
-                                        Clicked="OnDeleteProjectDirClicked" />
+                                        Clicked="OnDeleteProjectDirClicked"
+                                                Margin="{StaticResource ButtonMargin}"/>
 
                                         </HorizontalStackLayout>
                                     </StackLayout>
@@ -201,7 +207,8 @@
                                     Grid.Column="1"
                                     Text="Delete Backup Files"
                                     IsEnabled="{Binding CanRestore}"
-                                    Clicked="OnDeleteBackupsClicked">
+                                    Clicked="OnDeleteBackupsClicked"
+                                    Margin="{StaticResource LeftButtonMargin}">
                                     <ToolTipProperties.Text>Delete all backup files this app has created. Not Recommended unless you've tested all the new files!</ToolTipProperties.Text>
                                 </Button>
                             </Grid>
@@ -222,7 +229,8 @@
                     <Button Grid.Column="1"
                             Text="Stop"
                             Clicked="OnStopClicked"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource Red}, Dark={StaticResource RedDark}}"/>
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Red}, Dark={StaticResource RedDark}}"
+                            Margin="{StaticResource LeftButtonMargin}"/>
                 </Grid>
                 <Grid Grid.Row="3"
                       IsVisible="{Binding CurrentlyRunning}">

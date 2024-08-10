@@ -12,10 +12,10 @@
     <Color x:Key="Secondary">#DFD8F7</Color>
     <Color x:Key="SecondaryDarkText">#9880e5</Color>
     <Color x:Key="Tertiary">#2B0B98</Color>
-    <Color x:Key="Golden">#d4d42b</Color>
-    <Color x:Key="GoldenDark">#eae999</Color>
-    <Color x:Key="Red">#AA0000</Color>
-    <Color x:Key="RedDark">#BB0000</Color>
+    <Color x:Key="Golden">#2bd42b</Color>
+    <Color x:Key="GoldenDark">#99ea99</Color>
+    <Color x:Key="Red">#d42b2b</Color>
+    <Color x:Key="RedDark">#ea9999</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>

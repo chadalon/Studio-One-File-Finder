@@ -60,6 +60,7 @@ namespace Studio_One_File_Finder
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
 		private const string LOCATING_SAMPLES_STRING = "Locating samples...";
+		private const string USER_CANCEL_STRING = "User canceled operation.";
 
 		private bool _currentlyRunning;
 		public bool CurrentlyRunning
@@ -174,7 +175,7 @@ namespace Studio_One_File_Finder
 				}
 				foreach (var item in currentDir.EnumerateDirectories())
 				{
-					FindSongFolders(item);
+					FindBackupFolders(item);
 				}
 
 			}
@@ -198,6 +199,7 @@ namespace Studio_One_File_Finder
 			{
 				_setCurSong(GetFileName(songFolderPath, Path.DirectorySeparatorChar));
 				modifier(songFolderPath);
+				if (_cancellationToken.IsCancellationRequested) return;
 				count++;
 				_setProgressBar((double)count / (double)songFolders.Count);
 			}
@@ -235,11 +237,15 @@ namespace Studio_One_File_Finder
 			CacheAllSamples();
 			if (_cancellationToken.IsCancellationRequested)
 			{
-				_currentOutput("User canceled operation.");
+				_currentOutput(USER_CANCEL_STRING);
 				CurrentlyRunning = false;
 				return;
 			}
 			DoStuffWithSongsInThisDir(projectDirectories, UpdateSong);
+			if (_cancellationToken.IsCancellationRequested)
+			{
+				_currentOutput(USER_CANCEL_STRING);
+			}
 			string finalString = $"Updated {_refUpdateCount} sample references ({_projectsUpdated} songs)";
 			foreach (var fTypeCount in InstrumentEntries.SampleCounts)
 			{
@@ -264,6 +270,7 @@ namespace Studio_One_File_Finder
 			foreach (var songFile in songFiles)
 			{
 				LoadProject(songFile);
+				if (_cancellationToken.IsCancellationRequested) return;
 			}
 		}
 		/// <summary>
