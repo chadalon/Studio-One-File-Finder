@@ -118,6 +118,7 @@
                                         x:Name="LocationEntry"
                                         Placeholder="Enter location"
                                         Text="{Binding FolderPath, Mode=TwoWay}"
+                                                IsEnabled="{Binding CanBrowse}"
                                         TextColor="{Binding TextColor}">
                                                 <Entry.GestureRecognizers>
                                                     <DropGestureRecognizer DragOver="OnDragOver" Drop="OnDrop" />
@@ -131,6 +132,11 @@
                                         Text="Delete"
                                         Clicked="OnDeleteProjectDirClicked"
                                                 Margin="{StaticResource ButtonMargin}"/>
+                                            <Label
+                                                Text="Validating Directory..."
+                                                VerticalOptions="Center"
+                                                IsVisible="{Binding IsValidating}"
+                                                />
 
                                         </HorizontalStackLayout>
                                     </StackLayout>

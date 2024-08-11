@@ -363,7 +363,7 @@ namespace Studio_One_File_Finder
 					var folder = (FolderInfo)ob;
 					var folderVerifDisposable = folder.WhenAnyValue(x => x.FolderPath).Subscribe(folderPath =>
 					{
-						folder.VerifyPath();
+						Task.Run(folder.VerifyPath);
 					});
 					folder.FolderDisposables.Add(folderVerifDisposable);
 					var folderValidDisposable = folder.WhenAnyValue(x => x.PathIsValid).Subscribe(pathIsValid =>
@@ -446,6 +446,16 @@ namespace Studio_One_File_Finder
 				OnPropertyChanged();
 			}
 		}
+		private bool _isValidating;
+		public bool IsValidating
+		{
+			get => _isValidating;
+			set
+			{
+				_isValidating = value;
+				OnPropertyChanged();
+			}
+		}
 		private Color _textColor;
 		public Color TextColor
 		{
@@ -461,6 +471,7 @@ namespace Studio_One_File_Finder
 
 		public FolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert)
 		{
+			IsValidating = false;
 			_alert = alert;
 			FolderPath = path;
 			IndexInCollectionPlusOne = indexInCollection;
@@ -485,15 +496,19 @@ namespace Studio_One_File_Finder
 		}
 		public virtual async void VerifyPath()
 		{
+			PathIsValid = false;
 			PathIsValid = await Task.Run(FolderPathIsValid);// FolderPathIsValid();// await new Task<bool>(FolderPathIsValid);
 		}
 	}
 	public class SongFolderInfo : FolderInfo
 	{
 		public SongFolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert) : base(path, indexInCollection, alert) { }
-		public override async void VerifyPath()
+		public override void VerifyPath()
 		{
-			PathIsValid = await FolderPathIsValidAsync();
+			IsValidating = true;
+			PathIsValid = false;
+			PathIsValid = FolderPathIsValidAsync().Result;
+			IsValidating = false;
 		}
 		private async Task<bool> FolderPathIsValidAsync()
 		{
