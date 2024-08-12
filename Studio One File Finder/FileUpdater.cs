@@ -60,7 +60,9 @@ namespace Studio_One_File_Finder
 		public const string BACKUP_FILE_EXTENSION = ".s1filefinderbackup";
 		List<string> SUPPORTED_FILE_TYPES = new() { ".wav", ".aiff", ".aif", ".rex", ".caf", ".ogg", ".flac", ".mp3" };
 		private const string LOCATING_SAMPLES_STRING = "Locating samples...";
+		private const string LOCATING_SONGS_STRING = "Locating songs...";
 		private const string USER_CANCEL_STRING = "User canceled operation.";
+		private const int NUM_OF_FILES_FOUND_BEFORE_UPDATE_UI = 10;
 
 		private bool _currentlyRunning;
 		public bool CurrentlyRunning
@@ -151,10 +153,13 @@ namespace Studio_One_File_Finder
 		}
 		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier, bool includeBackups=false)
 		{
+			string songOrBackup = (includeBackups ? "backup" : "song");
 			count = 0;
 			HashSet<string> songFolders = new();
 			void FindEnclosingStudioOneFolders(DirectoryInfo directory, string searchString="*.song")
 			{
+				_currentOutput($"Finding {songOrBackup} directories...");
+				_setCurSong(LOCATING_SONGS_STRING);
 				Queue<DirectoryInfo> dirsToSearch = new();
 				dirsToSearch.Enqueue(directory);
 				while (dirsToSearch.Any())
@@ -164,10 +169,22 @@ namespace Studio_One_File_Finder
 						return;
 					}
 					DirectoryInfo currentDir = dirsToSearch.Dequeue();
-					var songFiles = Directory.GetFiles(currentDir.FullName, searchString).ToList();
+					List<string> songFiles;
+					try
+					{
+						songFiles = Directory.GetFiles(currentDir.FullName, searchString).ToList();
+					}
+					catch (Exception e)
+					{
+						continue;
+					}
 					if (songFiles.Any() && currentDir.Name != "History")
 					{
 						songFolders.Add(currentDir.FullName);
+						if (songFolders.Count % NUM_OF_FILES_FOUND_BEFORE_UPDATE_UI == 0)
+						{
+							_setCurSong($"{LOCATING_SONGS_STRING} {songFolders.Count} folders found");
+						}
 					}
 					foreach (var item in currentDir.EnumerateDirectories())
 					{
@@ -175,33 +192,6 @@ namespace Studio_One_File_Finder
 					}
 				}
 			}
-			/*
-			void FindSongFolders(DirectoryInfo currentDir)
-			{
-				var songFiles = Directory.GetFiles(currentDir.FullName, $"*.song").ToList();
-				if (songFiles.Count > 0 && currentDir.Name != "History") // if we excluding autosaves
-				{
-					songFolders.Add(currentDir.FullName);
-					//return; // if we only counting song folders
-				}
-				foreach (var item in currentDir.EnumerateDirectories())
-				{
-					FindSongFolders(item);
-				}
-			}
-			void FindBackupFolders(DirectoryInfo currentDir)
-			{
-				var songFiles = Directory.GetFiles(currentDir.FullName, $"*{BACKUP_FILE_EXTENSION}").ToList();
-				if (songFiles.Count > 0 && currentDir.Name != "History") // if we excluding autosaves
-				{
-					songFolders.Add(currentDir.FullName);
-				}
-				foreach (var item in currentDir.EnumerateDirectories())
-				{
-					FindBackupFolders(item);
-				}
-
-			}*/
 
 			foreach (string projectsDir in projectDirectories)
 			{
@@ -215,16 +205,10 @@ namespace Studio_One_File_Finder
 					FindEnclosingStudioOneFolders(new DirectoryInfo(projectsDir));
 				}
 				if (_cancellationToken.IsCancellationRequested) return;
-				/*
-			FindSongFolders(new DirectoryInfo(projectsDir));
-			if (includeBackups)
-			{
-				FindBackupFolders(new DirectoryInfo(projectsDir));
-			}*/
 
 				if (songFolders.Count - countBefore == 0)
 				{
-					_currentOutput($"No song folders found in {projectsDir}");
+					_currentOutput($"No {songOrBackup} folders found in {projectsDir}");
 					continue;
 				}
 			}
@@ -558,7 +542,7 @@ namespace Studio_One_File_Finder
 					foreach (var audioFile in audioFiles)
 					{
 						_discoveredFiles[audioFile.Name] = audioFile.FullName;
-						if (_discoveredFiles.Count % 10 == 0)
+						if (_discoveredFiles.Count % NUM_OF_FILES_FOUND_BEFORE_UPDATE_UI == 0)
 						{
 							_setCurSong($"{LOCATING_SAMPLES_STRING} {_discoveredFiles.Count} discovered");
 						}

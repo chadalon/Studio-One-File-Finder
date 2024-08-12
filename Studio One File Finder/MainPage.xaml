@@ -131,6 +131,11 @@
                                         Text="Delete"
                                         Clicked="OnDeleteProjectDirClicked"
                                                 Margin="{StaticResource ButtonMargin}"/>
+                                            <Label
+                                                Text="Validating Directory..."
+                                                VerticalOptions="Center"
+                                                IsVisible="{Binding IsValidating}"
+                                                />
 
                                         </HorizontalStackLayout>
                                     </StackLayout>
