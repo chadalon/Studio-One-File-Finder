@@ -153,11 +153,12 @@ namespace Studio_One_File_Finder
 		}
 		private void DoStuffWithSongsInThisDir(List<string> projectDirectories, Callback modifier, bool includeBackups=false)
 		{
+			string songOrBackup = (includeBackups ? "backup" : "song");
 			count = 0;
 			HashSet<string> songFolders = new();
 			void FindEnclosingStudioOneFolders(DirectoryInfo directory, string searchString="*.song")
 			{
-				_currentOutput("Finding song directories...");
+				_currentOutput($"Finding {songOrBackup} directories...");
 				_setCurSong(LOCATING_SONGS_STRING);
 				Queue<DirectoryInfo> dirsToSearch = new();
 				dirsToSearch.Enqueue(directory);
@@ -207,7 +208,7 @@ namespace Studio_One_File_Finder
 
 				if (songFolders.Count - countBefore == 0)
 				{
-					_currentOutput($"No song folders found in {projectsDir}");
+					_currentOutput($"No {songOrBackup} folders found in {projectsDir}");
 					continue;
 				}
 			}
