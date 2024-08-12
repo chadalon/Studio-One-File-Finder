@@ -363,7 +363,7 @@ namespace Studio_One_File_Finder
 					var folder = (FolderInfo)ob;
 					var folderVerifDisposable = folder.WhenAnyValue(x => x.FolderPath).Subscribe(folderPath =>
 					{
-						Task.Run(folder.VerifyPath);
+						folder.VerifyPath();
 					});
 					folder.FolderDisposables.Add(folderVerifDisposable);
 					var folderValidDisposable = folder.WhenAnyValue(x => x.PathIsValid).Subscribe(pathIsValid =>
@@ -494,34 +494,41 @@ namespace Studio_One_File_Finder
 		{
 			return System.IO.Directory.Exists(FolderPath);
 		}
-		public virtual async void VerifyPath()
+		public virtual void VerifyPath()
 		{
 			PathIsValid = false;
-			PathIsValid = await Task.Run(FolderPathIsValid);// FolderPathIsValid();// await new Task<bool>(FolderPathIsValid);
+			PathIsValid = FolderPathIsValid();
 		}
 	}
 	public class SongFolderInfo : FolderInfo
 	{
+		private CancellationTokenSource _dirValidationTokenSource;
+		private CancellationToken _directoryValidationToken;
 		public SongFolderInfo(string path, int indexInCollection, FilePreferencesViewModel.MyEventAction alert) : base(path, indexInCollection, alert) { }
+		/// <summary>
+		/// To be called on the main thread
+		/// </summary>
 		public override void VerifyPath()
 		{
+			if (IsValidating)
+			{
+				_dirValidationTokenSource.Cancel();
+				while (IsValidating) ;
+			}
+			_dirValidationTokenSource = new();
+			_directoryValidationToken = _dirValidationTokenSource.Token;
 			IsValidating = true;
 			PathIsValid = false;
-			PathIsValid = FolderPathIsValidAsync().Result;
-			IsValidating = false;
+			Task.Run(() =>
+			{
+				PathIsValid = FolderPathIsValidAsync().Result;
+				IsValidating = false;
+			});
 		}
 		private async Task<bool> FolderPathIsValidAsync()
 		{
 			if (!base.FolderPathIsValid()) return false;
-			try
-			{
-				return SearchMyDirOfficer(new DirectoryInfo(FolderPath));
-			}
-			catch (Exception ex)
-			{
-				await Application.Current!.Dispatcher.DispatchAsync(async () => await _alert.Invoke("Problem with directory", ex.Message, "okay bruv"));
-				return false;
-			}
+			return SearchMyDirOfficer(new DirectoryInfo(FolderPath));
 		}
 		/// <summary>
 		/// Perform a breadth-first search of directory to find any valid .song file (or song backup)
@@ -534,6 +541,7 @@ namespace Studio_One_File_Finder
 			directoriesToSearch.Enqueue(dir);
 			while (directoriesToSearch.Any())
 			{
+				if (_directoryValidationToken.IsCancellationRequested) return false;
 				DirectoryInfo currentDir = directoriesToSearch.Dequeue();
 				List<string> songFiles;
 				List<string> bupFiles;
