@@ -87,6 +87,7 @@ namespace Studio_One_File_Finder
 		DoubleCallback _setProgressBar;
 		StringCallback _setCurSong;
 		BoolCallback _runningCallback;
+		CallbackPrompt _currentPrompt;
 
 		private string _currentSongFolderName;
 
@@ -389,6 +390,7 @@ namespace Studio_One_File_Finder
 				}
 
 				File.Move(tempFilePath, sourceFilePath, true);
+				File.SetCreationTime(sourceFilePath, DateTime.Now); // for checking upon restore
 				_projectsUpdated++;
 				_songsUpdated.Add(sourceFilePath);
 			}
@@ -733,6 +735,17 @@ namespace Studio_One_File_Finder
 				var fileName = backup.Replace(BACKUP_FILE_EXTENSION, "");
 				if (songFiles.Contains(fileName))
 				{
+					if (File.GetLastWriteTime(fileName) > File.GetCreationTime(fileName))
+					{
+						// dont replace?
+						if (!_currentPrompt("Modified File Detected", $"{GetFileName(fileName)} appears to have been modified since its creation. Are you sure you want to overwrite it with its backup?\n\nANY and ALL work you've done" +
+							$" on it since updating samples will be lost forever!!", "Yes", "No").Result)
+						{
+							// delete the backup?
+							_currentOutput($"{GetFileName(fileName)} was not restored. If you want to avoid seeing this delete its backup file.");
+							continue;
+						}
+					}
 					File.Delete(fileName);
 				}
 				File.Move(backup, fileName);
@@ -755,6 +768,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
+			_currentPrompt = verifyContinue;
 			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
