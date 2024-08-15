@@ -10,10 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 
-// TODO cancellationtoken, make this a task perhaps
 // TODO make run button a reactivecommand. it can b enabled when you have valid directories AND when this ISNT running
-// TODO plug in settings for sampleone etc
-// TODO cleanup
 namespace Studio_One_File_Finder
 {
 	enum FileType
