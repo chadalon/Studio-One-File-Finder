@@ -10,10 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 
-// TODO cancellationtoken, make this a task perhaps
 // TODO make run button a reactivecommand. it can b enabled when you have valid directories AND when this ISNT running
-// TODO plug in settings for sampleone etc
-// TODO cleanup
 namespace Studio_One_File_Finder
 {
 	enum FileType
@@ -87,6 +84,7 @@ namespace Studio_One_File_Finder
 		DoubleCallback _setProgressBar;
 		StringCallback _setCurSong;
 		BoolCallback _runningCallback;
+		CallbackPrompt _currentPrompt;
 
 		private string _currentSongFolderName;
 
@@ -382,13 +380,16 @@ namespace Studio_One_File_Finder
 			}
 			else
 			{
+				var curSongDateLastModified = File.GetLastWriteTime(sourceFilePath);
+				var curSongDateCreated = File.GetCreationTime(sourceFilePath);
 				string newBackupPath = sourceFilePath + BACKUP_FILE_EXTENSION;
 				if (!File.Exists(newBackupPath)) // if a backup exists, leave it be
 				{
 					File.Move(sourceFilePath, newBackupPath);
 				}
-
 				File.Move(tempFilePath, sourceFilePath, true);
+				File.SetCreationTime(sourceFilePath, curSongDateCreated);
+				File.SetLastWriteTime(sourceFilePath, curSongDateLastModified);
 				_projectsUpdated++;
 				_songsUpdated.Add(sourceFilePath);
 			}
@@ -730,12 +731,27 @@ namespace Studio_One_File_Finder
 			var songFiles = Directory.GetFiles(songFolderPath, $"*.song").ToList();
 			foreach (var backup in backupFiles)
 			{
+				// only creation should matter if replacing a modified file, blah blah blah, this is future proof don't @ me
+				DateTime creationDate = File.GetCreationTime(backup);
+				DateTime modifiedDate = File.GetLastWriteTime(backup);
 				var fileName = backup.Replace(BACKUP_FILE_EXTENSION, "");
 				if (songFiles.Contains(fileName))
 				{
-					File.Delete(fileName);
+					if (File.GetLastWriteTime(fileName) > File.GetLastWriteTime(backup))
+					{
+						// dont replace?
+						if (!_currentPrompt("Modified File Detected", $"{GetFileName(fileName)} appears to have been modified since its backup was created. Are you sure you want to overwrite it with its backup?\n\nANY and ALL work you've done" +
+							$" on it since updating samples will be lost forever!!", "Yes", "No").Result)
+						{
+							// delete the backup?
+							_currentOutput($"{GetFileName(fileName)} was not restored. If you want to avoid this fuss delete its backup file.");
+							continue;
+						}
+					}
 				}
-				File.Move(backup, fileName);
+				File.Move(backup, fileName, true);
+				File.SetCreationTime(fileName, creationDate);
+				File.SetLastWriteTime(fileName, modifiedDate);
 				_currentOutput($"Restored {fileName}");
 				_filesRestored.Add(fileName);
 			}
@@ -755,6 +771,7 @@ namespace Studio_One_File_Finder
 			{
 				return;
 			}
+			_currentPrompt = verifyContinue;
 			StartRunning(cancellationToken);
 			InitBackupVars();
 			_currentHandler = handler;
