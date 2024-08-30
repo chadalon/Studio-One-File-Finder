@@ -178,6 +178,8 @@ namespace Studio_One_File_Finder
 
 		private FileUpdater _fileUpdater;
 
+		public INavigation Navigation;
+
 		public FilePreferencesViewModel()
 		{
 		}
@@ -291,7 +293,7 @@ namespace Studio_One_File_Finder
 				OverwriteValidPaths = OverWriteValidPaths,
 				UpdateDuplicateFiles = UpdateDuplicates
 			};
-			_fileUpdater.UpdateFiles(GetNewCancellationToken(), validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler);
+			_fileUpdater.UpdateFiles(GetNewCancellationToken(), validSampleDirs, validProjectDirs, extraPlugins, settings, errorHandler, outputHandler, Navigation);
 		}
 		public void RestoreFiles()
 		{

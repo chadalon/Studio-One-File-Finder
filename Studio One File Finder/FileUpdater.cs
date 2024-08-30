@@ -13,7 +13,7 @@ using System.Xml;
 // TODO make run button a reactivecommand. it can b enabled when you have valid directories AND when this ISNT running
 namespace Studio_One_File_Finder
 {
-	enum FileType
+	public enum FileType
 	{
 		MediaPool,
 		SampleOne,
@@ -219,7 +219,7 @@ namespace Studio_One_File_Finder
 				_setProgressBar((double)count / (double)songFolders.Count);
 			}
 		}
-		public async void UpdateFiles(CancellationToken cancellationToken, List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output)
+		public async void UpdateFiles(CancellationToken cancellationToken, List<string> sampleDirectories, List<string> projectDirectories, List<FileType> typesToUpdate, ExtraSettings config, CallbackAlert handler, Callback output, INavigation curNavigation)
 		{
 			if (CurrentlyRunning)
 			{
@@ -268,6 +268,7 @@ namespace Studio_One_File_Finder
 			}
 			finalString += $"\n\n{_songsSkipped.Count} songs were not updated.";
 			finalString += $"\nTime taken: {DateTime.Now - _startTime}";
+			await Application.Current.Dispatcher.DispatchAsync(() => curNavigation.PushModalAsync(new ResultsPage(_songsUpdated, _songsSkipped)));
 			await handler(finalString, "Results");
 			CurrentlyRunning = false;
 		}

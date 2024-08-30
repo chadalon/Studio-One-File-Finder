@@ -23,6 +23,7 @@ using Windows.Storage;
 #if IOS || MACCATALYST
 using UIKit;
 using Foundation;
+using CommunityToolkit.Maui.Views;
 #endif
 
 namespace Studio_One_File_Finder
@@ -35,6 +36,7 @@ namespace Studio_One_File_Finder
 		{
 			FilePreferences = filePreferencesViewModel;
 			BindingContext = filePreferencesViewModel;
+			FilePreferences.Navigation = Navigation;
 			filePreferencesViewModel.InitializeFilePreferences(DisplayAlert, DisplayAlert);
 			InitializeComponent();
 
@@ -57,7 +59,6 @@ namespace Studio_One_File_Finder
 
 			Loaded += OnPageLoad;
 		}
-
 		private void OnPageLoad(object? sender, EventArgs e)
 		{
 			// TODO uncomment this when ready
@@ -268,6 +269,12 @@ namespace Studio_One_File_Finder
 				FolderInfo fi = dgr.BindingContext as FolderInfo;
 				fi.FolderPath = filePaths.First();
 			}
+		}
+
+		private void Button_Clicked(object sender, EventArgs e)
+		{
+
+			Navigation.PushModalAsync(new ResultsPage(new List<string>(), new List<string>()));
 		}
 	}
 

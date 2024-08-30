@@ -71,4 +71,10 @@
 	  <Folder Include="Resources\Audio\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <MauiXaml Update="ResultsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
 </Project>

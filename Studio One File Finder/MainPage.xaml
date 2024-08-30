@@ -301,7 +301,8 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0"
             Text="Help meee" 
-                    MaximumHeightRequest="50"/>
+                    MaximumHeightRequest="50"
+                    Clicked="Button_Clicked"/>
             <VerticalStackLayout Grid.Column="2" 
                                  HorizontalOptions="Center">
                 <HorizontalStackLayout Style="{StaticResource CBAndLabel}">
